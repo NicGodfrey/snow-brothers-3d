@@ -51,6 +51,7 @@ export class HandoffService {
     const model = assertAttributionModel(input.attributionModel ?? "linear");
     const estimatedValue = money(input.estimatedValueMinor, input.currency);
     const handedOffAt = this.clock.nowIso();
+    const stageAtHandoff = lead.stage;
 
     // Domain guard: only SQL leads convert, value must be positive.
     lead.handOff(estimatedValue, handedOffAt);
@@ -85,7 +86,7 @@ export class HandoffService {
       qualification: {
         score: lead.score,
         grade: lead.grade,
-        stageAtHandoff: lead.stage,
+        stageAtHandoff,
         source: lead.source,
         tags: [...lead.tags],
       },
