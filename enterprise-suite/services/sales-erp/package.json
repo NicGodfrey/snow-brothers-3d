@@ -14,11 +14,12 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsc -p tsconfig.json && node --test dist/tests/",
+    "test": "tsc -p tsconfig.json && node --test \"dist/tests/*.test.js\"",
     "lint": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/src/http/main.js"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "typescript": "^5.6.3",
     "tsx": "^4.19.2"
   },
