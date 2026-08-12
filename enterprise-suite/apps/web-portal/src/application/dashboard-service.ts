@@ -71,6 +71,7 @@ export class DashboardService {
         tile: {
           module: module.key,
           label: module.label,
+          mark: module.mark,
           accent: module.accent,
           path,
           status: "ok",
@@ -86,6 +87,7 @@ export class DashboardService {
         tile: {
           module: module.key,
           label: module.label,
+          mark: module.mark,
           accent: module.accent,
           path,
           status,

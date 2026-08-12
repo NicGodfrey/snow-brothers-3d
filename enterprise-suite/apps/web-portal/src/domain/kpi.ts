@@ -28,6 +28,7 @@ export type TileStatus = "ok" | "degraded" | "forbidden";
 export interface DashboardTile {
   readonly module: ModuleKey;
   readonly label: string;
+  readonly mark: string;
   readonly accent: string;
   readonly path: string;
   readonly status: TileStatus;

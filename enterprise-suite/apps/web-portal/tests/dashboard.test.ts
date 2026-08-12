@@ -17,6 +17,7 @@ describe("dashboard", () => {
     );
     const sales = dashboard.tiles[0]!;
     assert.equal(sales.status, "ok");
+    assert.equal(sales.mark, "SL", "the tile reuses the rail's module mark");
     assert.deepEqual(
       sales.kpis.map((k) => k.key),
       ["openOrderValue", "openQuotes", "quoteWinRate", "avgCycleDays"],

@@ -28,7 +28,7 @@ export function moduleTile(tile: DashboardTile, locale: string): Html {
   return html`
     <section class="card tile">
       <div class="tile__head">
-        <span class="rail__mark" style="background:${tile.accent}">${tile.label.slice(0, 2).toUpperCase()}</span>
+        <span class="rail__mark" style="background:${tile.accent}">${tile.mark}</span>
         <h2><a href="${tile.path}">${tile.label}</a></h2>
         ${tile.status === "ok" ? "" : badge(tile.status === "forbidden" ? "no access" : "unavailable", tile.status === "forbidden" ? "warn" : "error")}
       </div>
