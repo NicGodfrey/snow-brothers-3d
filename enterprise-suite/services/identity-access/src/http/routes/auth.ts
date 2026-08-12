@@ -65,11 +65,7 @@ export function registerAuthRoutes(router: Router, module: IdentityModule): void
         mfaSatisfied: principal.mfaSatisfied,
         impersonatedBy: principal.impersonatedBy,
       },
-      permissions: module.authorization.grantedPermissionKeys(
-        principal.tenantId,
-        principal.subject,
-        scope,
-      ),
+      permissions: module.authorization.permissionsForPrincipal(principal, scope),
     });
   });
 

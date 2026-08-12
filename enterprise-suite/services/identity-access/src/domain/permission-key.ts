@@ -162,6 +162,27 @@ export function patternCovers(outer: GrantPattern, inner: GrantPattern): boolean
   return o.resource.length === i.resource.length && !i.resource.includes("**");
 }
 
+/**
+ * True when some concrete permission key would be matched by both patterns. Coverage is
+ * one-directional, so it cannot answer "may these two overlap at all" — which is what a
+ * credential scope-down list needs when it is intersected with a role's grants.
+ */
+export function patternsIntersect(a: GrantPattern, b: GrantPattern): boolean {
+  if (a === b) return true;
+  const left = parsePermission(a);
+  const right = parsePermission(b);
+  if (left.action !== "*" && right.action !== "*" && left.action !== right.action) return false;
+  return resourceIntersects(left.resource, right.resource);
+}
+
+function resourceIntersects(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length === 0 || b.length === 0) return a.length === b.length;
+  // "**" only ever appears last, so either side reaching it absorbs the rest of the other.
+  if (a[0] === "**" || b[0] === "**") return true;
+  if (a[0] !== "*" && b[0] !== "*" && a[0] !== b[0]) return false;
+  return resourceIntersects(a.slice(1), b.slice(1));
+}
+
 export function permissionResource(key: PermissionKey | GrantPattern): string {
   return key.split(":")[0];
 }

@@ -130,7 +130,7 @@ export class PermissionSet {
     return new PermissionSet(
       principal.tenantId,
       scope,
-      authorization.grantedPermissionKeys(principal.tenantId, principal.subject, scope),
+      authorization.permissionsForPrincipal(principal, scope),
     );
   }
 

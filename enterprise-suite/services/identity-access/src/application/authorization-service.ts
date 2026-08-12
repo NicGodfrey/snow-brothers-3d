@@ -7,7 +7,12 @@ import {
 } from "../domain/decision.js";
 import { AuthorizationDeniedError } from "../domain/errors.js";
 import type { PermissionCatalog } from "../domain/permission.js";
-import { permissionKey, type PermissionKey } from "../domain/permission-key.js";
+import {
+  patternsIntersect,
+  permissionKey,
+  type GrantPattern,
+  type PermissionKey,
+} from "../domain/permission-key.js";
 import { ROOT_SCOPE, scopePath, type ScopePath } from "../domain/scope.js";
 import { subjectKey, type SubjectRef } from "../domain/subject.js";
 import type { Principal } from "./principal.js";
@@ -151,13 +156,18 @@ export class AuthorizationService {
     tenantId: TenantId,
     subject: SubjectRef,
     scope: ScopePath = ROOT_SCOPE,
+    restrictions?: readonly GrantPattern[],
   ): ReturnType<typeof effectivePatterns> {
-    return effectivePatterns({
+    const patterns = effectivePatterns({
       now: this.clock.now(),
       bindings: this.bindingsFor(tenantId, subject),
       roles: this.roles.map(tenantId),
       scope,
     });
+    if (!restrictions || restrictions.length === 0) return patterns;
+    return patterns.filter((pattern) =>
+      restrictions.some((restriction) => patternsIntersect(restriction, pattern.permission)),
+    );
   }
 
   /** Concrete catalog permissions the subject holds — the list a UI can render. */
@@ -165,6 +175,7 @@ export class AuthorizationService {
     tenantId: TenantId,
     subject: SubjectRef,
     scope: ScopePath = ROOT_SCOPE,
+    restrictions?: readonly GrantPattern[],
   ): readonly PermissionKey[] {
     const now = this.clock.now();
     const tenant = this.tenants.byId(tenantId);
@@ -183,10 +194,28 @@ export class AuthorizationService {
             request: { permission: definition.key, scope },
             bindings,
             roles,
+            restrictions,
             roleCache,
           }).allowed,
       )
       .map((definition) => definition.key);
+  }
+
+  /**
+   * Introspection for the caller itself. Goes through the principal rather than the bare
+   * subject so a restricted credential (an API key with a scope-down list) reports what it
+   * can actually do, not what its roles would allow on their own.
+   */
+  permissionsForPrincipal(
+    principal: Principal,
+    scope: ScopePath = ROOT_SCOPE,
+  ): readonly PermissionKey[] {
+    return this.grantedPermissionKeys(
+      principal.tenantId,
+      principal.subject,
+      scope,
+      principal.restrictions,
+    );
   }
 
   /** Reverse lookup: which subjects may exercise a permission at a scope. */
