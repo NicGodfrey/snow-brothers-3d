@@ -2,7 +2,7 @@ import { createContainer } from "../infrastructure/container.js";
 import { seedDemoData } from "../infrastructure/seed.js";
 import { createPrmServer } from "./server.js";
 
-const port = Number(process.env["PORT"] ?? 3016);
+const port = Number(process.env["PORT"] ?? 3017);
 const container = createContainer();
 
 if (process.env["PRM_SEED"] !== "false") {
