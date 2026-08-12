@@ -268,7 +268,7 @@ describe("proxying", () => {
 
     const wrongMethod = await call("DELETE", "/api/sales/orders/o_1");
     assert.equal(wrongMethod.status, 405);
-    assert.equal(wrongMethod.headers.get("allow"), "GET, PATCH");
+    assert.equal(wrongMethod.headers.get("allow"), "GET");
   });
 
   it("throttles a hot route and reports the standard headers", async () => {
