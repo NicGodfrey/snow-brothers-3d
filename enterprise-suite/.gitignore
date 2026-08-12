@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+.DS_Store
+*.log
+.env
+.env.*
+.suite-logs/
+docs/exports/
+docs/suite-runtime.json
+.data/

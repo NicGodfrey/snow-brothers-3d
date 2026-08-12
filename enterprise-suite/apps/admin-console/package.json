@@ -1,0 +1,30 @@
+{
+  "name": "@enterprise-suite/admin-console",
+  "version": "0.1.0",
+  "description": "Tenant administration shell: tenants, users and roles, reference data, webhooks, feature flags",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.tests.json",
+    "test": "tsc -b tsconfig.json && node --import tsx --test \"tests/*.test.ts\"",
+    "lint": "npm run typecheck",
+    "dev": "tsx src/http/main.ts",
+    "demo": "tsx src/demo.ts"
+  },
+  "dependencies": {
+    "@enterprise-suite/api-gateway": "*",
+    "@enterprise-suite/shared-kernel": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@enterprise-suite/api-gateway",
+  "version": "0.1.0",
+  "description": "Edge gateway kernel: route table, tenant header middleware, health/ready aggregation, OpenAPI aggregator",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./http": {
+      "types": "./dist/http/index.d.ts",
+      "import": "./dist/http/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.tests.json",
+    "test": "tsc -b tsconfig.json && node --import tsx --test \"tests/*.test.ts\"",
+    "lint": "npm run typecheck",
+    "dev": "tsx src/http/main.ts"
+  },
+  "dependencies": {
+    "@enterprise-suite/shared-kernel": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2"
+  }
+}

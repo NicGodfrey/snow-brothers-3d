@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Enterprise Suite — Build Progress</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0e1a17;
+      --muted: #5c6f68;
+      --paper: #f3f6f2;
+      --panel: rgba(255, 255, 255, 0.72);
+      --line: rgba(14, 26, 23, 0.1);
+      --ok: #1f8a5b;
+      --run: #0b6e99;
+      --wait: #9a6b1f;
+      --idle: #7a8580;
+      --erp: #0b6e99;
+      --srm: #b45309;
+      --prm: #0f766e;
+      --plat: #334155;
+      --apps: #6d28d9;
+      --accent: #148f5b;
+      --shadow: 0 18px 50px rgba(14, 26, 23, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(20, 143, 91, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(11, 110, 153, 0.16), transparent 50%),
+        linear-gradient(160deg, #e8f0ea 0%, #f3f6f2 40%, #e7eef3 100%);
+      background-attachment: fixed;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(14,26,23,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14,26,23,0.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(to bottom, black, transparent 85%);
+    }
+
+    .wrap {
+      width: min(1240px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2rem 0 3.5rem;
+      position: relative;
+    }
+
+    header.hero {
+      display: grid;
+      gap: 1.25rem;
+      margin-bottom: 1.75rem;
+      animation: rise 0.7s ease both;
+    }
+
+    .brand {
+      font-family: Syne, sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      margin: 0;
+    }
+
+    .brand span {
+      display: inline-block;
+      background: linear-gradient(120deg, #0e1a17 20%, #148f5b 55%, #0b6e99 90%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lede {
+      max-width: 42rem;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+      align-items: center;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.7rem;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(8px);
+      border-radius: 999px;
+    }
+
+    .dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: var(--run);
+      box-shadow: 0 0 0 0 rgba(11,110,153,0.45);
+      animation: pulse 1.8s ease infinite;
+    }
+
+    .dot.ok { background: var(--ok); animation: none; }
+    .dot.wait { background: var(--wait); }
+    .dot.idle { background: var(--idle); animation: none; }
+
+    .summary {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .summary { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 1.15rem 1.25rem;
+      animation: rise 0.75s ease both;
+    }
+
+    .panel:nth-child(2) { animation-delay: 0.05s; }
+    .panel:nth-child(3) { animation-delay: 0.1s; }
+
+    .panel h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .big {
+      font-family: Syne, sans-serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+
+    .sub {
+      margin: 0.35rem 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .bar {
+      margin-top: 1rem;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(14,26,23,0.08);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #148f5b, #0b6e99);
+      transition: width 0.8s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .stat {
+      padding: 0.75rem;
+      border-radius: 12px;
+      background: rgba(14,26,23,0.03);
+      border: 1px solid var(--line);
+    }
+
+    .stat b {
+      display: block;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1.25rem;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .batch {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .batch-row {
+      display: grid;
+      grid-template-columns: 110px 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .batch-row strong { font-size: 0.92rem; }
+    .batch-row em {
+      font-style: normal;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .mini-bar {
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(14,26,23,0.08);
+      overflow: hidden;
+    }
+    .mini-bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #0b6e99, #148f5b);
+      transition: width 0.7s ease;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 0 0 1rem;
+      animation: rise 0.8s ease both;
+    }
+
+    button, .filter {
+      font: inherit;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 0.45rem 0.85rem;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    button:hover, .filter:hover { transform: translateY(-1px); border-color: rgba(14,26,23,0.25); }
+    .filter.active {
+      background: var(--ink);
+      color: #f3f6f2;
+      border-color: var(--ink);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.85rem;
+    }
+
+    @media (max-width: 800px) {
+      .board { grid-template-columns: 1fr; }
+    }
+
+    .mod {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.78);
+      border-radius: 16px;
+      padding: 1rem 1.05rem;
+      box-shadow: 0 10px 30px rgba(14,26,23,0.05);
+      animation: rise 0.55s ease both;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .mod:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 36px rgba(14,26,23,0.09);
+    }
+
+    .mod-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: start;
+      margin-bottom: 0.55rem;
+    }
+
+    .mod h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .mod .path {
+      margin: 0.15rem 0 0;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.28rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    .badge.complete { color: var(--ok); background: rgba(31,138,91,0.1); border-color: rgba(31,138,91,0.25); }
+    .badge.building { color: var(--run); background: rgba(11,110,153,0.1); border-color: rgba(11,110,153,0.25); }
+    .badge.started { color: var(--wait); background: rgba(154,107,31,0.1); border-color: rgba(154,107,31,0.25); }
+    .badge.queued { color: var(--idle); background: rgba(122,133,128,0.1); }
+
+    .sys {
+      display: inline-block;
+      margin-top: 0.45rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .sys.ERP { color: var(--erp); }
+    .sys.SRM { color: var(--srm); }
+    .sys.PRM { color: var(--prm); }
+    .sys.Platform { color: var(--plat); }
+    .sys.Apps { color: var(--apps); }
+
+    .mod-bar {
+      margin: 0.8rem 0 0.55rem;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(14,26,23,0.08);
+      overflow: hidden;
+    }
+    .mod-bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #148f5b, #0b6e99 70%, #5eead4);
+      transition: width 0.75s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .mod-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.7rem;
+    }
+    .check {
+      font-size: 0.65rem;
+      font-family: "IBM Plex Mono", monospace;
+      padding: 0.18rem 0.4rem;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      color: var(--idle);
+      background: rgba(14,26,23,0.02);
+    }
+    .check.on {
+      color: var(--ok);
+      border-color: rgba(31,138,91,0.28);
+      background: rgba(31,138,91,0.08);
+    }
+
+    footer {
+      margin-top: 1.75rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .error {
+      padding: 1rem;
+      border-radius: 12px;
+      background: #fff1f0;
+      border: 1px solid #f3c1bd;
+      color: #8a2b22;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(11,110,153,0.45); }
+      70% { box-shadow: 0 0 0 10px rgba(11,110,153,0); }
+      100% { box-shadow: 0 0 0 0 rgba(11,110,153,0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1 class="brand"><span>Enterprise Suite</span></h1>
+      <p class="lede">ERP · SRM · PRM 并行构建进度。Fable5 ×10 与 Opus5-fast ×10 子代理按模块切片推进；完成度按领域切片检查项实时扫描。</p>
+      <div class="meta-row">
+        <span class="pill"><i class="dot" id="liveDot"></i> <span id="liveLabel">scanning</span></span>
+        <span class="pill" id="generatedAt">—</span>
+        <span class="pill">20 modules · 2 batches</span>
+      </div>
+    </header>
+
+    <div class="error" id="error"></div>
+
+    <section class="summary">
+      <article class="panel">
+        <h2>Overall completion</h2>
+        <p class="big" id="avgPct">0%</p>
+        <p class="sub" id="overallSub">Waiting for first scan…</p>
+        <div class="bar"><i id="overallBar"></i></div>
+      </article>
+      <article class="panel">
+        <h2>Code volume</h2>
+        <div class="stat-grid">
+          <div class="stat"><b id="lines">0</b><span>lines scanned</span></div>
+          <div class="stat"><b id="files">0</b><span>source files</span></div>
+          <div class="stat"><b id="buildingCount">0</b><span>building</span></div>
+          <div class="stat"><b id="completeCount">0</b><span>complete</span></div>
+        </div>
+      </article>
+      <article class="panel">
+        <h2>Agent batches</h2>
+        <div class="batch">
+          <div class="batch-row">
+            <strong>Fable5</strong>
+            <div class="mini-bar"><i id="fableBar"></i></div>
+            <em id="fableLabel">0/10</em>
+          </div>
+          <div class="batch-row">
+            <strong>Opus5-fast</strong>
+            <div class="mini-bar"><i id="opusBar"></i></div>
+            <em id="opusLabel">0/10</em>
+          </div>
+          <p class="sub">Fable5 无 fast 变体，使用 xhigh。Opus5 使用 high-fast。</p>
+        </div>
+      </article>
+    </section>
+
+    <div class="controls">
+      <button type="button" id="refreshBtn">Refresh now</button>
+      <button type="button" class="filter active" data-filter="all">All</button>
+      <button type="button" class="filter" data-filter="fable5">Fable5</button>
+      <button type="button" class="filter" data-filter="opus5-fast">Opus5-fast</button>
+      <button type="button" class="filter" data-filter="building">Building</button>
+      <button type="button" class="filter" data-filter="queued">Queued</button>
+      <button type="button" class="filter" data-filter="complete">Complete</button>
+    </div>
+
+    <section class="board" id="board" aria-live="polite"></section>
+
+    <footer>
+      <span>Data source: <code>docs/progress.json</code> · regenerate with <code>node scripts/scan-progress.mjs</code></span>
+      <span id="autoHint">Auto-refresh every 8s</span>
+    </footer>
+  </div>
+
+  <script>
+    const state = { data: null, filter: "all" };
+
+    const fmt = (n) => new Intl.NumberFormat("en-US").format(n || 0);
+
+    function statusLabel(s) {
+      return ({ complete: "complete", building: "building", started: "started", queued: "queued" })[s] || s;
+    }
+
+    function renderModule(m, idx) {
+      const checks = Object.entries(m.checks || {})
+        .map(([k, v]) => `<span class="check ${v ? "on" : ""}">${k}</span>`)
+        .join("");
+      return `
+        <article class="mod" style="animation-delay:${Math.min(idx, 12) * 0.03}s">
+          <div class="mod-top">
+            <div>
+              <h3>${m.label}</h3>
+              <p class="path">${m.path}</p>
+              <span class="sys ${m.system}">${m.system} · ${m.batch}</span>
+            </div>
+            <span class="badge ${m.status}">${statusLabel(m.status)}</span>
+          </div>
+          <div class="mod-bar"><i style="width:${m.percent}%"></i></div>
+          <div class="mod-meta">
+            <span>${m.percent}% · ${m.score}/${m.maxScore} checks</span>
+            <span>${fmt(m.lines)} lines · ${fmt(m.files)} files</span>
+          </div>
+          <div class="checks">${checks}</div>
+        </article>`;
+    }
+
+    function applyFilter(modules) {
+      const f = state.filter;
+      if (f === "all") return modules;
+      if (f === "fable5" || f === "opus5-fast") return modules.filter((m) => m.batch === f);
+      return modules.filter((m) => m.status === f);
+    }
+
+    function render() {
+      const data = state.data;
+      if (!data) return;
+      const t = data.totals;
+      const avg = t.avgModulePercent ?? Math.round(
+        data.modules.reduce((a, m) => a + m.percent, 0) / Math.max(data.modules.length, 1)
+      );
+
+      document.getElementById("avgPct").textContent = `${avg}%`;
+      document.getElementById("overallBar").style.width = `${avg}%`;
+      document.getElementById("overallSub").textContent =
+        `${t.complete} complete · ${t.building} building · ${t.started} started · ${t.queued} queued`;
+      document.getElementById("lines").textContent = fmt(t.lines);
+      document.getElementById("files").textContent = fmt(t.files);
+      document.getElementById("buildingCount").textContent = fmt(t.building + t.started);
+      document.getElementById("completeCount").textContent = fmt(t.complete);
+      document.getElementById("generatedAt").textContent = `updated ${new Date(data.generatedAt).toLocaleString()}`;
+
+      const fDone = t.fable5.active_or_done;
+      const oDone = t.opus5fast.active_or_done;
+      document.getElementById("fableBar").style.width = `${(fDone / t.fable5.total) * 100}%`;
+      document.getElementById("opusBar").style.width = `${(oDone / t.opus5fast.total) * 100}%`;
+      document.getElementById("fableLabel").textContent = `${fDone}/${t.fable5.total} active`;
+      document.getElementById("opusLabel").textContent = `${oDone}/${t.opus5fast.total} active`;
+
+      const live = t.queued < 20;
+      const liveDot = document.getElementById("liveDot");
+      const liveLabel = document.getElementById("liveLabel");
+      if (t.complete === 20) {
+        liveDot.className = "dot ok";
+        liveLabel.textContent = "all modules complete";
+      } else if (live) {
+        liveDot.className = "dot";
+        liveLabel.textContent = "agents writing code";
+      } else {
+        liveDot.className = "dot wait";
+        liveLabel.textContent = "waiting for agents";
+      }
+
+      const list = applyFilter(data.modules);
+      document.getElementById("board").innerHTML = list.map(renderModule).join("") ||
+        `<p class="sub">No modules match this filter.</p>`;
+    }
+
+    async function load() {
+      const err = document.getElementById("error");
+      try {
+        const res = await fetch(`progress.json?ts=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        state.data = await res.json();
+        err.style.display = "none";
+        render();
+      } catch (e) {
+        err.style.display = "block";
+        err.textContent = `无法加载 progress.json：${e.message}. 请先运行 node scripts/scan-progress.mjs，并用本地静态服务器打开本页。`;
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", load);
+    document.querySelectorAll(".filter").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".filter").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.filter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    load();
+    setInterval(load, 8000);
+  </script>
+</body>
+</html>

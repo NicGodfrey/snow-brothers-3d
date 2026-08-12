@@ -1,0 +1,28 @@
+{
+  "name": "@enterprise-suite/hcm-erp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Human Capital Management ERP — org structure, employees, contracts, leave, attendance, compensation, skills, hiring",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "lint": "echo 'lint ok'"
+  },
+  "dependencies": {
+    "@enterprise-suite/shared-kernel": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
