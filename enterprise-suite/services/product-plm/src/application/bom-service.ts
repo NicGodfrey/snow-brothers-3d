@@ -91,6 +91,9 @@ export class BomService {
     command: AddBomLineCommand,
   ): Promise<BomLine> {
     const bom = await this.getByProduct(ctx, productId);
+    if (command.componentProductId === productId) {
+      throw ValidationError.single("componentProductId", "a BOM cannot reference its own product");
+    }
     const component = await this.mustGetProduct(ctx, command.componentProductId);
     if (component.lifecycle === "end_of_life") {
       throw new InvalidStateError(`Component ${component.code} is end-of-life and cannot be added to a BOM`);
@@ -133,10 +136,11 @@ export class BomService {
     },
   ): Promise<BomLine> {
     const bom = await this.getByProduct(ctx, productId);
+    const { uom: rawUom, ...rest } = patch;
     let uom: BomLine["uom"] | undefined;
-    if (patch.uom !== undefined) {
+    if (rawUom !== undefined) {
       const registry = await this.uomService.registryFor(ctx.tenantId);
-      uom = registry.resolve(patch.uom).code;
+      uom = registry.resolve(rawUom).code;
       const existing = bom.revisionById(revisionId)?.lines.find((l) => l.id === lineId);
       if (existing) {
         const component = await this.mustGetProduct(ctx, existing.componentProductId);
@@ -148,7 +152,7 @@ export class BomService {
         }
       }
     }
-    const line = bom.updateLine(revisionId, lineId, { ...patch, ...(uom !== undefined ? { uom } : {}) });
+    const line = bom.updateLine(revisionId, lineId, { ...rest, ...(uom !== undefined ? { uom } : {}) });
     await this.commit(bom);
     return line;
   }

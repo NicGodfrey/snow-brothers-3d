@@ -54,8 +54,9 @@ function unit(
 /** Units available to every tenant out of the box. */
 export const STANDARD_UNITS: readonly UnitOfMeasure[] = [
   unit("EA", "Each", "count", 1, 0),
-  unit("PR", "Pair", "count", 2, 0),
-  unit("DZ", "Dozen", "count", 12, 0),
+  // Pack units keep two decimals: 25 EA is a meaningful 2.08 DZ.
+  unit("PR", "Pair", "count", 2, 2),
+  unit("DZ", "Dozen", "count", 12, 2),
   unit("KG", "Kilogram", "mass", 1),
   unit("G", "Gram", "mass", 0.001),
   unit("MG", "Milligram", "mass", 0.000001),

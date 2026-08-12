@@ -218,14 +218,15 @@ export class Eco extends AggregateRoot<EcoProps> {
 
   addItem(input: { readonly productId: Ulid; readonly change: EcoChange; readonly description?: string }): EcoItem {
     this.assertStatus("draft", "add items");
-    validateChange(input.change);
+    const change = input.change;
+    validateChange(change);
     if (
-      input.change.kind === "bom_release" &&
+      change.kind === "bom_release" &&
       this.props.items.some(
-        (i) => i.change.kind === "bom_release" && i.change.bomRevisionId === input.change.bomRevisionId,
+        (i) => i.change.kind === "bom_release" && i.change.bomRevisionId === change.bomRevisionId,
       )
     ) {
-      throw new InvalidStateError(`Revision ${input.change.bomRevisionId} is already on this ECO`);
+      throw new InvalidStateError(`Revision ${change.bomRevisionId} is already on this ECO`);
     }
     const item: EcoItem = {
       id: newId("ecoitem"),

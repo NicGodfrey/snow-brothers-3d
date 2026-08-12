@@ -297,6 +297,14 @@ export class Product extends AggregateRoot<ProductProps> {
   }
 
   /**
+   * The SKU a variant with these inputs would receive. Exposed so callers can
+   * check tenant-wide uniqueness *before* mutating the aggregate.
+   */
+  variantSkuFor(input: { readonly sku?: string; readonly axisValues: Readonly<Record<string, string>> }): Sku {
+    return input.sku !== undefined ? skuOf(input.sku) : this.generateVariantSku(input.axisValues);
+  }
+
+  /**
    * Adds a variant. Axis values must already be validated against the
    * attribute set; the aggregate enforces the structural invariants: unique
    * axis combination, unique SKU within the aggregate, and no new variants
@@ -324,7 +332,7 @@ export class Product extends AggregateRoot<ProductProps> {
     if (this.props.variants.some((v) => axisKey(v.axisValues) === key)) {
       throw new InvalidStateError(`A variant with axis combination {${key}} already exists`);
     }
-    const sku = input.sku !== undefined ? skuOf(input.sku) : this.generateVariantSku(input.axisValues);
+    const sku = this.variantSkuFor(input);
     if (this.props.sku === sku || this.props.variants.some((v) => v.sku === sku)) {
       throw new InvalidStateError(`SKU ${sku} is already used within product ${this.props.code}`);
     }

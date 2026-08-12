@@ -1,5 +1,6 @@
 import {
   ConflictError,
+  NotFoundError,
   type IsoDateTime,
   type TenantContext,
   type Ulid,
@@ -27,6 +28,9 @@ export class CostingService {
 
   /** Computes the cost breakdown without persisting anything. */
   async rollUp(ctx: TenantContext, query: RollupQuery): Promise<CostRollupResult> {
+    if (!(await this.products.byId(ctx.tenantId, query.productId))) {
+      throw new NotFoundError("Product", query.productId);
+    }
     const sources = await this.bomService.buildSources(ctx);
     return rollUpCost(sources, {
       productId: query.productId,

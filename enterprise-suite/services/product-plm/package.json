@@ -13,9 +13,9 @@
   },
   "scripts": {
     "build": "tsc -b tsconfig.json",
-    "typecheck": "tsc -b tsconfig.json --dry 2>/dev/null || tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.tests.json",
     "test": "tsc -b tsconfig.json && node --import tsx --test \"tests/*.test.ts\"",
-    "lint": "tsc -p tsconfig.json --noEmit",
+    "lint": "npm run typecheck",
     "dev": "tsx src/http/main.ts"
   },
   "dependencies": {

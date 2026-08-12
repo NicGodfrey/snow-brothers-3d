@@ -186,6 +186,13 @@ export class ProductService {
       const attrIssues = validateAttributeValues(set, defs, { ...command.attributes }, { enforceRequired: false });
       if (attrIssues.length > 0) throw new ValidationError("Invalid variant attributes", attrIssues);
     }
+    // Tenant-wide SKU uniqueness, checked before the aggregate is mutated
+    // (the aggregate can only see its own SKUs).
+    const candidateSku = product.variantSkuFor({ sku: command.sku, axisValues: command.axisValues });
+    const clash = await this.products.bySku(ctx.tenantId, candidateSku);
+    if (clash && clash.id !== product.id) {
+      throw new ConflictError(`SKU "${candidateSku}" is already taken by product ${clash.code}`);
+    }
     const variant = product.addVariant({
       sku: command.sku,
       axisValues: command.axisValues,
@@ -195,11 +202,6 @@ export class ProductService {
         : undefined,
       at: this.clock.now(),
     });
-    // Tenant-wide SKU uniqueness (the aggregate can only see itself).
-    const clash = await this.products.bySku(ctx.tenantId, variant.sku);
-    if (clash && clash.id !== product.id) {
-      throw new ConflictError(`SKU "${variant.sku}" is already taken by product ${clash.code}`);
-    }
     await this.commit(product);
     return variant;
   }
