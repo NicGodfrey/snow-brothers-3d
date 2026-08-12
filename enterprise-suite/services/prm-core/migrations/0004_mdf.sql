@@ -9,8 +9,8 @@
 --   claim       the partner asks to be reimbursed with proof of performance;
 --               payment *settles* the committed money
 --
--- The ledger invariant paid <= committed <= amount is enforced on the
--- allocation row, so no code path can pay out money that was never approved.
+-- The ledger invariant committed + paid <= amount is enforced on the allocation
+-- row, so no code path can pay out money that was never allocated.
 
 CREATE TABLE prmc_mdf_budgets (
     id                TEXT        PRIMARY KEY,
@@ -53,8 +53,9 @@ CREATE TABLE prmc_mdf_allocations (
     note           TEXT,
     -- A partner gets one allocation per budget; top it up rather than adding a second.
     UNIQUE (budget_id, partner_id),
-    CHECK (committed_minor <= amount_minor),
-    CHECK (paid_minor <= committed_minor)
+    -- Paying a claim moves money from committed to paid, so the two buckets are
+    -- disjoint and together they can never exceed what was allocated.
+    CHECK (committed_minor + paid_minor <= amount_minor)
 );
 CREATE INDEX prmc_mdf_allocations_partner_idx ON prmc_mdf_allocations (tenant_id, partner_id);
 
