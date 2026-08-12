@@ -231,6 +231,7 @@ export async function seedDemoData(container: ChannelContainer, tenant = "demo")
     description: "Store-level connectivity refresh tied to their 2026 point-of-sale programme.",
   });
   await services.registration.submit(partnerCtx("marek"), acme.id);
+  await services.registration.approve(ctx, acme.id);
   advance(20);
   await services.registration.markLost(ctx, acme.id, {
     reason: "competitor",
