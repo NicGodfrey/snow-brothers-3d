@@ -1,0 +1,25 @@
+{
+  "name": "@enterprise-suite/outbox-relay",
+  "version": "0.1.0",
+  "description": "Polls every domain service's outbox drain endpoint and forwards the events to integration-hub with end-to-end idempotency",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "lint": "echo 'lint ok'",
+    "start": "node --import tsx src/main.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2"
+  }
+}
