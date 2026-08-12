@@ -134,9 +134,11 @@ export class SupplierService {
   // --- lifecycle -----------------------------------------------------------
 
   /**
-   * Activates a supplier directly (the onboarding path calls this too).
-   * An active onboarding hold means the compliance team has not cleared the
-   * supplier, so activation is refused rather than silently overriding it.
+   * Turns an onboarded supplier into a trading one. The status machine only
+   * allows `onboarding -> active`, so this is the go-live step of a case
+   * rather than a way around it. An active onboarding hold means compliance
+   * has not cleared the supplier, so activation is refused rather than
+   * silently overriding it.
    */
   async activate(ctx: TenantContext, id: Ulid, reason?: string): Promise<Supplier> {
     const supplier = await this.get(ctx, id);

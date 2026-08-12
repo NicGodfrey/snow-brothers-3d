@@ -522,6 +522,16 @@ export class SupplierRiskProfile extends AggregateRoot<RiskProfileProps> {
     reason: string,
     releasedOn: DateOnly,
   ): ComplianceHold {
+    return this.doReleaseHold(holdId, by, roles, reason, releasedOn);
+  }
+
+  private doReleaseHold(
+    holdId: Ulid,
+    by: UserId,
+    roles: readonly RoleCode[] | undefined,
+    reason: string,
+    releasedOn: DateOnly,
+  ): ComplianceHold {
     const index = this.props.holds.findIndex((hold) => hold.id === holdId);
     if (index === -1) {
       throw new InvalidStateError(`Hold ${holdId} is not on supplier ${this.props.supplierCode}`);
@@ -530,7 +540,7 @@ export class SupplierRiskProfile extends AggregateRoot<RiskProfileProps> {
     if (hold.status !== "active") {
       throw new InvalidStateError(`Hold ${holdId} is already ${hold.status}`);
     }
-    if (hold.releaseRoles.length > 0 && !roles.some((role) => hold.releaseRoles.includes(role))) {
+    if (roles && hold.releaseRoles.length > 0 && !roles.some((role) => hold.releaseRoles.includes(role))) {
       throw new RoleRequiredError(`Releasing the ${hold.reasonCode} hold`, hold.releaseRoles);
     }
     const updated: ComplianceHold = {
@@ -575,11 +585,17 @@ export class SupplierRiskProfile extends AggregateRoot<RiskProfileProps> {
     return expired;
   }
 
-  /** Lifts the automatic hold(s) raised for a fact that has since been fixed. */
+  /**
+   * Lifts the automatic hold(s) raised for a fact that has since been fixed.
+   * The release-role gate guards *manual* releases, where nobody can verify
+   * the claim that the problem is gone; here the system raised the hold from
+   * an observable fact and is releasing it because that fact changed, so a
+   * buyer renewing an expired certificate does not need a compliance role.
+   */
   releaseHoldsBySourceRef(sourceRef: string, by: UserId, reason: string, releasedOn: DateOnly): readonly ComplianceHold[] {
     const released: ComplianceHold[] = [];
     for (const hold of this.activeHolds().filter((entry) => entry.sourceRef === sourceRef)) {
-      released.push(this.releaseHold(hold.id, by, [], reason, releasedOn));
+      released.push(this.doReleaseHold(hold.id, by, undefined, reason, releasedOn));
     }
     return released;
   }

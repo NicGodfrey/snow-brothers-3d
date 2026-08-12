@@ -707,15 +707,24 @@ export class Supplier extends AggregateRoot<SupplierProps> {
 
   /**
    * Deactivating the primary site would leave the supplier without a legal
-   * address, so the caller has to promote another active site first.
+   * address, so the caller has to promote another active site first. A trading
+   * supplier also cannot lose its last site: no address means no PO and no
+   * delivery, so the supplier has to be suspended first.
    */
   deactivateSite(siteId: Ulid, reason: string): void {
     const index = this.requireSiteIndex(siteId);
     const site = this.props.sites[index]!;
     if (!site.isActive) throw new InvalidStateError(`Site ${site.code} is already inactive`);
-    if (site.isPrimary && this.props.sites.some((s) => s.isActive && s.id !== siteId)) {
+    const otherActive = this.props.sites.filter((s) => s.isActive && s.id !== siteId);
+    if (site.isPrimary && otherActive.length > 0) {
       throw new InvalidStateError(
         `Site ${site.code} is the primary site; promote another site before deactivating it`,
+      );
+    }
+    if (otherActive.length === 0 && this.props.status === "active") {
+      throw new InvalidStateError(
+        `Site ${site.code} is the last active site of trading supplier ${this.props.code}; ` +
+          `suspend the supplier or add a replacement site first`,
       );
     }
     this.props.sites[index] = {
