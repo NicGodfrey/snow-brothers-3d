@@ -1,21 +1,27 @@
 import {
   brand,
+  JsonTenantStore,
+  reviveEntity,
   type EventEnvelope,
   type IsoDateTime,
   type TenantId,
   type Ulid,
 } from "@enterprise-suite/shared-kernel";
-import type { ApprovalPolicy, ApprovalRequest, ApprovalRequestStatus } from "../domain/approval.js";
-import type { AgreementStatus, BlanketAgreement } from "../domain/blanket-agreement.js";
+import {
+  ApprovalPolicy,
+  ApprovalRequest,
+  type ApprovalRequestStatus,
+} from "../domain/approval.js";
+import { BlanketAgreement, type AgreementStatus } from "../domain/blanket-agreement.js";
 import { isoDate, type DocumentType, type IsoDate } from "../domain/common.js";
-import type { InvoiceStatus, SupplierInvoice } from "../domain/invoice.js";
+import { SupplierInvoice, type InvoiceStatus } from "../domain/invoice.js";
 import { formatDocumentNumber, type DocumentSeries } from "../domain/numbering.js";
-import type { PurchaseOrder, PurchaseOrderStatus } from "../domain/purchase-order.js";
-import type { GoodsReceipt } from "../domain/receipt.js";
-import type { PurchaseRequisition, RequisitionStatus } from "../domain/requisition.js";
-import type { RequestForQuote, RfqStatus } from "../domain/rfq.js";
-import type { SupplierQuote } from "../domain/quote.js";
-import type { SupplierRecord, SupplierStatus } from "../domain/supplier.js";
+import { PurchaseOrder, type PurchaseOrderStatus } from "../domain/purchase-order.js";
+import { GoodsReceipt } from "../domain/receipt.js";
+import { PurchaseRequisition, type RequisitionStatus } from "../domain/requisition.js";
+import { RequestForQuote, type RfqStatus } from "../domain/rfq.js";
+import { SupplierQuote } from "../domain/quote.js";
+import { SupplierRecord, type SupplierStatus } from "../domain/supplier.js";
 import type {
   AgreementRepository,
   ApprovalPolicyRepository,
@@ -147,23 +153,37 @@ interface Identified {
 }
 
 class InMemoryStore<T extends Identified> implements Repository<T> {
-  protected readonly byTenant = new Map<TenantId, Map<Ulid, T>>();
+  private readonly store: JsonTenantStore<T>;
+
+  constructor(name: string, prototype: object) {
+    // Nested line entities lose class methods after JSON round-trip; keep
+    // procurement in-memory unless explicitly opted in for experiments.
+    this.store = new JsonTenantStore<T>({
+      service: "procurement-srm",
+      name,
+      revive: (raw) => reviveEntity<T>(prototype, raw),
+      enabled: process.env.PERSISTENCE_PROCUREMENT === "1",
+    });
+  }
+
+  get isEmpty(): boolean {
+    return this.store.isEmpty();
+  }
+
+  flush(): void {
+    this.store.flush();
+  }
 
   save(entity: T): void {
-    let tenantMap = this.byTenant.get(entity.tenantId);
-    if (!tenantMap) {
-      tenantMap = new Map();
-      this.byTenant.set(entity.tenantId, tenantMap);
-    }
-    tenantMap.set(entity.id, entity);
+    this.store.set(entity.tenantId, entity.id, entity);
   }
 
   findById(tenantId: TenantId, id: Ulid): T | undefined {
-    return this.byTenant.get(tenantId)?.get(id);
+    return this.store.get(tenantId, id);
   }
 
   listByTenant(tenantId: TenantId): T[] {
-    return [...(this.byTenant.get(tenantId)?.values() ?? [])];
+    return this.store.values(tenantId);
   }
 
   protected filter(tenantId: TenantId, predicate: (entity: T) => boolean): T[] {
@@ -179,6 +199,7 @@ export class InMemorySupplierRepository
   extends InMemoryStore<SupplierRecord>
   implements SupplierDirectoryRepository
 {
+  constructor() { super("suppliers", SupplierRecord.prototype); }
   findByNumber(tenantId: TenantId, supplierNumber: string): SupplierRecord | undefined {
     return this.listByTenant(tenantId).find((supplier) => supplier.supplierNumber === supplierNumber);
   }
@@ -199,6 +220,7 @@ export class InMemoryRequisitionRepository
   extends InMemoryStore<PurchaseRequisition>
   implements RequisitionRepository
 {
+  constructor() { super("requisitions", PurchaseRequisition.prototype); }
   findByNumber(tenantId: TenantId, requisitionNumber: string): PurchaseRequisition | undefined {
     return this.listByTenant(tenantId).find(
       (requisition) => requisition.requisitionNumber === requisitionNumber,
@@ -219,6 +241,7 @@ export class InMemoryApprovalPolicyRepository
   extends InMemoryStore<ApprovalPolicy>
   implements ApprovalPolicyRepository
 {
+  constructor() { super("approval-policies", ApprovalPolicy.prototype); }
   findByCode(tenantId: TenantId, code: string): ApprovalPolicy | undefined {
     return this.listByTenant(tenantId).find((policy) => policy.code === code);
   }
@@ -231,6 +254,7 @@ export class InMemoryApprovalRequestRepository
   extends InMemoryStore<ApprovalRequest>
   implements ApprovalRequestRepository
 {
+  constructor() { super("approval-requests", ApprovalRequest.prototype); }
   findByDocument(tenantId: TenantId, documentId: Ulid): ApprovalRequest[] {
     return this.filter(tenantId, (request) => request.documentId === documentId);
   }
@@ -258,6 +282,7 @@ export class InMemoryApprovalRequestRepository
 }
 
 export class InMemoryRfqRepository extends InMemoryStore<RequestForQuote> implements RfqRepository {
+  constructor() { super("rfqs", RequestForQuote.prototype); }
   findByNumber(tenantId: TenantId, rfqNumber: string): RequestForQuote | undefined {
     return this.listByTenant(tenantId).find((rfq) => rfq.rfqNumber === rfqNumber);
   }
@@ -273,6 +298,7 @@ export class InMemoryRfqRepository extends InMemoryStore<RequestForQuote> implem
 }
 
 export class InMemoryQuoteRepository extends InMemoryStore<SupplierQuote> implements QuoteRepository {
+  constructor() { super("quotes", SupplierQuote.prototype); }
   findByNumber(tenantId: TenantId, quoteNumber: string): SupplierQuote | undefined {
     return this.listByTenant(tenantId).find((quote) => quote.quoteNumber === quoteNumber);
   }
@@ -291,6 +317,7 @@ export class InMemoryPurchaseOrderRepository
   extends InMemoryStore<PurchaseOrder>
   implements PurchaseOrderRepository
 {
+  constructor() { super("purchase-orders", PurchaseOrder.prototype); }
   findByNumber(tenantId: TenantId, orderNumber: string): PurchaseOrder | undefined {
     return this.listByTenant(tenantId).find((order) => order.orderNumber === orderNumber);
   }
@@ -314,6 +341,7 @@ export class InMemoryPurchaseOrderRepository
 }
 
 export class InMemoryReceiptRepository extends InMemoryStore<GoodsReceipt> implements ReceiptRepository {
+  constructor() { super("receipts", GoodsReceipt.prototype); }
   findByNumber(tenantId: TenantId, receiptNumber: string): GoodsReceipt | undefined {
     return this.listByTenant(tenantId).find((receipt) => receipt.receiptNumber === receiptNumber);
   }
@@ -332,6 +360,7 @@ export class InMemoryInvoiceRepository
   extends InMemoryStore<SupplierInvoice>
   implements InvoiceRepository
 {
+  constructor() { super("invoices", SupplierInvoice.prototype); }
   findByNumber(tenantId: TenantId, invoiceNumber: string): SupplierInvoice | undefined {
     return this.listByTenant(tenantId).find((invoice) => invoice.invoiceNumber === invoiceNumber);
   }
@@ -364,6 +393,7 @@ export class InMemoryAgreementRepository
   extends InMemoryStore<BlanketAgreement>
   implements AgreementRepository
 {
+  constructor() { super("agreements", BlanketAgreement.prototype); }
   findByNumber(tenantId: TenantId, agreementNumber: string): BlanketAgreement | undefined {
     return this.listByTenant(tenantId).find(
       (agreement) => agreement.agreementNumber === agreementNumber,

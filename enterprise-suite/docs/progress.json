@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T13:07:21.253Z",
+  "generatedAt": "2026-08-12T18:11:45.988Z",
   "root": "/workspace/enterprise-suite/",
   "totals": {
     "modules": 20,
@@ -7,8 +7,8 @@
     "building": 0,
     "started": 0,
     "queued": 0,
-    "files": 1264,
-    "lines": 221687,
+    "files": 1267,
+    "lines": 221737,
     "avgModulePercent": 100,
     "fable5": {
       "total": 10,
@@ -108,8 +108,8 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Supply Chain",
-      "files": 59,
-      "lines": 6032,
+      "files": 60,
+      "lines": 6047,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -133,8 +133,8 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Inventory WMS",
-      "files": 47,
-      "lines": 7762,
+      "files": 48,
+      "lines": 7772,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -208,8 +208,8 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "HCM / HR",
-      "files": 57,
-      "lines": 9804,
+      "files": 58,
+      "lines": 9829,
       "checks": {
         "package.json": true,
         "domain": true,

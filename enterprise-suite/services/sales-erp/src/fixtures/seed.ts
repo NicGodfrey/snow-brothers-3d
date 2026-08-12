@@ -26,7 +26,7 @@ export const SEED_SKUS = {
  * - an open opportunity
  * - a draft quote (2 lines) linked to the opportunity
  */
-export function seedDemoData(module: SalesModule, tenant = "tenant-demo"): SeedRefs {
+export function seedDemoData(module: SalesModule, tenant = "demo"): SeedRefs {
   const ctx = createTenantContext(tenant, "user-rep", ["sales_rep"]);
   const managerCtx = createTenantContext(tenant, "user-manager", ["sales_manager"]);
 

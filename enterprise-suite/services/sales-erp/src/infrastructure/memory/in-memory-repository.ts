@@ -1,3 +1,4 @@
+import { JsonTenantStore, reviveEntity } from "@enterprise-suite/shared-kernel";
 import { NotFoundError, type TenantId, type Ulid } from "../../kernel/index.js";
 import type { Repository } from "../../application/ports.js";
 
@@ -7,27 +8,41 @@ interface Identified {
 }
 
 /**
- * Tenant-scoped in-memory store. Lookups always require the tenant so one
- * tenant can never read another tenant's aggregates, mirroring the row-level
- * scoping the Postgres implementation will enforce.
+ * Tenant-scoped in-memory store with optional JSON file backing. Lookups
+ * always require the tenant so one tenant can never read another tenant's
+ * aggregates. Nested line entities lose class methods after JSON round-trip,
+ * so persistence is opt-in via PERSISTENCE_SALES=1.
  */
 export class InMemoryRepository<T extends Identified> implements Repository<T> {
-  protected readonly byTenant = new Map<string, Map<string, T>>();
+  private readonly store: JsonTenantStore<T>;
 
-  constructor(private readonly resourceName: string) {}
+  constructor(
+    private readonly resourceName: string,
+    prototype?: object,
+  ) {
+    this.store = new JsonTenantStore<T>({
+      service: "sales-erp",
+      name: resourceName,
+      revive: (raw) =>
+        prototype ? reviveEntity<T>(prototype, raw) : (raw as T),
+      enabled: process.env.PERSISTENCE_SALES === "1",
+    });
+  }
+
+  get isEmpty(): boolean {
+    return this.store.isEmpty();
+  }
+
+  flush(): void {
+    this.store.flush();
+  }
 
   save(entity: T): void {
-    const tenantKey = entity.tenantId as unknown as string;
-    let bucket = this.byTenant.get(tenantKey);
-    if (!bucket) {
-      bucket = new Map();
-      this.byTenant.set(tenantKey, bucket);
-    }
-    bucket.set(entity.id as unknown as string, entity);
+    this.store.set(entity.tenantId as unknown as string, entity.id as unknown as string, entity);
   }
 
   findById(tenantId: TenantId, id: Ulid): T | undefined {
-    return this.byTenant.get(tenantId as unknown as string)?.get(id as unknown as string);
+    return this.store.get(tenantId as unknown as string, id as unknown as string);
   }
 
   getById(tenantId: TenantId, id: Ulid): T {
@@ -37,7 +52,6 @@ export class InMemoryRepository<T extends Identified> implements Repository<T> {
   }
 
   listByTenant(tenantId: TenantId): T[] {
-    const bucket = this.byTenant.get(tenantId as unknown as string);
-    return bucket ? [...bucket.values()] : [];
+    return this.store.values(tenantId as unknown as string);
   }
 }

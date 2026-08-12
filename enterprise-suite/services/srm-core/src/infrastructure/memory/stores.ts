@@ -1,4 +1,5 @@
 import {
+  JsonTenantStore,
   nowIso,
   paginate,
   type EventEnvelope,
@@ -9,15 +10,15 @@ import {
   type Ulid,
 } from "@enterprise-suite/shared-kernel";
 import type { CategoryRecord } from "../../domain/category.js";
-import type { Certification } from "../../domain/certification.js";
-import type { Contract } from "../../domain/contract.js";
+import { Certification } from "../../domain/certification.js";
+import { Contract } from "../../domain/contract.js";
 import { compareDates, toDateOnly, type DateOnly } from "../../domain/dates.js";
 import type { KpiDefinitionRecord } from "../../domain/kpi.js";
-import type { OnboardingCase } from "../../domain/onboarding.js";
-import type { Qualification } from "../../domain/qualification.js";
-import type { SupplierRiskProfile } from "../../domain/risk.js";
-import type { Scorecard } from "../../domain/scorecard.js";
-import type { Supplier } from "../../domain/supplier.js";
+import { OnboardingCase } from "../../domain/onboarding.js";
+import { Qualification } from "../../domain/qualification.js";
+import { SupplierRiskProfile } from "../../domain/risk.js";
+import { Scorecard } from "../../domain/scorecard.js";
+import { Supplier } from "../../domain/supplier.js";
 import type {
   CategoryRepository,
   CertificationFilter,
@@ -39,34 +40,45 @@ import type {
 } from "../../application/ports.js";
 
 /**
- * In-memory adapters. Aggregates are stored by reference (single-process
- * semantics); tenant isolation is structural — every map is keyed by tenant
- * first, so a missing tenant can never leak another tenant's data.
+ * In-memory adapters with optional JSON file backing (PERSISTENCE_DIR).
+ * Aggregates are stored by reference (single-process semantics); tenant
+ * isolation is structural — every map is keyed by tenant first.
  */
 
 class TenantKeyedStore<T> {
-  private readonly byTenant = new Map<TenantId, Map<Ulid, T>>();
+  private readonly store: JsonTenantStore<T>;
 
-  private bucket(tenantId: TenantId): Map<Ulid, T> {
-    let bucket = this.byTenant.get(tenantId);
-    if (!bucket) {
-      bucket = new Map();
-      this.byTenant.set(tenantId, bucket);
-    }
-    return bucket;
+  constructor(name: string, revive: (raw: unknown) => T) {
+    this.store = new JsonTenantStore<T>({
+      service: "srm-core",
+      name,
+      revive,
+    });
+  }
+
+  get persistenceEmpty(): boolean {
+    return this.store.isEmpty();
+  }
+
+  flush(): void {
+    this.store.flush();
   }
 
   get(tenantId: TenantId, id: Ulid): T | undefined {
-    return this.byTenant.get(tenantId)?.get(id);
+    return this.store.get(tenantId, id);
   }
 
   set(tenantId: TenantId, id: Ulid, value: T): void {
-    this.bucket(tenantId).set(id, value);
+    this.store.set(tenantId, id, value);
   }
 
   values(tenantId: TenantId): T[] {
-    return [...(this.byTenant.get(tenantId)?.values() ?? [])];
+    return this.store.values(tenantId);
   }
+}
+
+function revivePlain<T>(raw: unknown): T {
+  return raw as T;
 }
 
 class SequenceStore {
@@ -80,7 +92,18 @@ class SequenceStore {
 }
 
 export class InMemorySupplierRepository implements SupplierRepository {
-  private readonly store = new TenantKeyedStore<Supplier>();
+  private readonly store = new TenantKeyedStore<Supplier>("suppliers", (raw) =>
+    Supplier.fromSnapshot(raw as Parameters<typeof Supplier.fromSnapshot>[0]),
+  );
+
+  /** True when no persisted rows were loaded (seed may run). */
+  get isEmpty(): boolean {
+    return this.store.persistenceEmpty;
+  }
+
+  flush(): void {
+    this.store.flush();
+  }
 
   async byId(tenantId: TenantId, id: Ulid): Promise<Supplier | undefined> {
     return this.store.get(tenantId, id);
@@ -133,7 +156,7 @@ export class InMemorySupplierRepository implements SupplierRepository {
 }
 
 export class InMemoryCategoryRepository implements CategoryRepository {
-  private readonly store = new TenantKeyedStore<CategoryRecord>();
+  private readonly store = new TenantKeyedStore<CategoryRecord>("categories", revivePlain);
 
   async byId(tenantId: TenantId, id: Ulid): Promise<CategoryRecord | undefined> {
     return this.store.get(tenantId, id);
@@ -158,7 +181,9 @@ export class InMemoryCategoryRepository implements CategoryRepository {
 }
 
 export class InMemoryOnboardingRepository implements OnboardingRepository {
-  private readonly store = new TenantKeyedStore<OnboardingCase>();
+  private readonly store = new TenantKeyedStore<OnboardingCase>("onboarding", (raw) =>
+    OnboardingCase.fromSnapshot(raw as Parameters<typeof OnboardingCase.fromSnapshot>[0]),
+  );
   private readonly sequences = new SequenceStore();
 
   async byId(tenantId: TenantId, id: Ulid): Promise<OnboardingCase | undefined> {
@@ -193,7 +218,9 @@ export class InMemoryOnboardingRepository implements OnboardingRepository {
 }
 
 export class InMemoryCertificationRepository implements CertificationRepository {
-  private readonly store = new TenantKeyedStore<Certification>();
+  private readonly store = new TenantKeyedStore<Certification>("certifications", (raw) =>
+    Certification.fromSnapshot(raw as Parameters<typeof Certification.fromSnapshot>[0]),
+  );
 
   async byId(tenantId: TenantId, id: Ulid): Promise<Certification | undefined> {
     return this.store.get(tenantId, id);
@@ -224,7 +251,9 @@ export class InMemoryCertificationRepository implements CertificationRepository 
 }
 
 export class InMemoryQualificationRepository implements QualificationRepository {
-  private readonly store = new TenantKeyedStore<Qualification>();
+  private readonly store = new TenantKeyedStore<Qualification>("qualifications", (raw) =>
+    Qualification.fromSnapshot(raw as Parameters<typeof Qualification.fromSnapshot>[0]),
+  );
   private readonly sequences = new SequenceStore();
 
   async byId(tenantId: TenantId, id: Ulid): Promise<Qualification | undefined> {
@@ -264,7 +293,7 @@ export class InMemoryQualificationRepository implements QualificationRepository 
 }
 
 export class InMemoryKpiDefinitionRepository implements KpiDefinitionRepository {
-  private readonly store = new TenantKeyedStore<KpiDefinitionRecord>();
+  private readonly store = new TenantKeyedStore<KpiDefinitionRecord>("kpis", revivePlain);
 
   async byId(tenantId: TenantId, id: Ulid): Promise<KpiDefinitionRecord | undefined> {
     return this.store.get(tenantId, id);
@@ -288,7 +317,9 @@ export class InMemoryKpiDefinitionRepository implements KpiDefinitionRepository 
 }
 
 export class InMemoryScorecardRepository implements ScorecardRepository {
-  private readonly store = new TenantKeyedStore<Scorecard>();
+  private readonly store = new TenantKeyedStore<Scorecard>("scorecards", (raw) =>
+    Scorecard.fromSnapshot(raw as Parameters<typeof Scorecard.fromSnapshot>[0]),
+  );
 
   async byId(tenantId: TenantId, id: Ulid): Promise<Scorecard | undefined> {
     return this.store.get(tenantId, id);
@@ -325,7 +356,9 @@ export class InMemoryScorecardRepository implements ScorecardRepository {
 }
 
 export class InMemoryContractRepository implements ContractRepository {
-  private readonly store = new TenantKeyedStore<Contract>();
+  private readonly store = new TenantKeyedStore<Contract>("contracts", (raw) =>
+    Contract.fromSnapshot(raw as Parameters<typeof Contract.fromSnapshot>[0]),
+  );
   private readonly sequences = new SequenceStore();
 
   async byId(tenantId: TenantId, id: Ulid): Promise<Contract | undefined> {
@@ -370,7 +403,9 @@ export class InMemoryContractRepository implements ContractRepository {
 }
 
 export class InMemoryRiskProfileRepository implements RiskProfileRepository {
-  private readonly store = new TenantKeyedStore<SupplierRiskProfile>();
+  private readonly store = new TenantKeyedStore<SupplierRiskProfile>("risk-profiles", (raw) =>
+    SupplierRiskProfile.fromSnapshot(raw as Parameters<typeof SupplierRiskProfile.fromSnapshot>[0]),
+  );
 
   async bySupplier(tenantId: TenantId, supplierId: Ulid): Promise<SupplierRiskProfile | undefined> {
     return this.store.values(tenantId).find((profile) => profile.supplierId === supplierId);
