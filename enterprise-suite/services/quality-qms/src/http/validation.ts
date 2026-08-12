@@ -125,6 +125,15 @@ export function requireIsoDate(obj: Record<string, unknown>, key: string): IsoDa
   return brand<string, "IsoDateTime">(parsed.toISOString());
 }
 
+export function optionalUlid(obj: Record<string, unknown>, key: string): Ulid | undefined {
+  const value = optionalString(obj, key);
+  return value === undefined ? undefined : brand<string, "Ulid">(value);
+}
+
+export function requireUlid(obj: Record<string, unknown>, key: string): Ulid {
+  return brand<string, "Ulid">(requireString(obj, key));
+}
+
 export function ulidParam(params: Record<string, string>, key: string): Ulid {
   const value = params[key];
   if (!value) throw new DomainError(`Missing path parameter '${key}'`, "VALIDATION");

@@ -11,6 +11,7 @@ import {
   requireNumber,
   requireNumberArray,
   requireString,
+  requireUlid,
   ulidParam,
 } from "../validation.js";
 
@@ -22,7 +23,7 @@ export function registerInspectionLotRoutes(router: Router, lots: InspectionLotS
   router.post("/inspection-lots", async ({ ctx, body }) => {
     const obj = asObject(body);
     const lot = await lots.createLot(ctx, {
-      planId: ulidParam({ planId: requireString(obj, "planId") }, "planId"),
+      planId: requireUlid(obj, "planId"),
       origin: requireEnum(obj, "origin", ORIGINS),
       quantity: requireNumber(obj, "quantity"),
       uom: requireString(obj, "uom"),

@@ -10,12 +10,15 @@
  *
  * The AQL implementation reproduces the structure of Table 1 (sample size
  * code letters) and Table 2-A (single sampling, normal inspection):
- * lot-size ranges map to a code letter per inspection level, each code
- * letter has a fixed sample size, and each AQL column has a first row where
- * Ac=0; below it the acceptance number follows the standard R5-ish
- * progression 1, 2, 3, 5, 7, 10, 14, 21. Rows above the first Ac=0 row use
- * the "arrow down" rule (use the first plan below); rows past Ac=21 use the
- * "arrow up" rule (sample size freezes at the Ac=21 row).
+ * lot-size ranges map to a code letter per inspection level, and each code
+ * letter has a fixed sample size. Within an AQL column (top to bottom):
+ *   - rows above the first Ac=0 row are down-arrows (use the Ac=0 plan)
+ *   - the Ac=0 row
+ *   - the next TWO rows are down-arrows resolving to the Ac=1 plan
+ *   - then one acceptance step per row: 1, 2, 3, 5, 7, 10, 14, 21
+ *   - rows past Ac=21 are up-arrows (use the Ac=21 plan)
+ * e.g. AQL 1.0: (13,0), (50,1), (80,2), (125,3), (200,5), (315,7), ...
+ * which matches the published single/normal plans.
  */
 import { DomainError } from "@enterprise-suite/shared-kernel";
 
@@ -96,8 +99,14 @@ const FIRST_ZERO_LETTER_BY_AQL: Record<AqlValue, CodeLetter> = {
   0.065: "L",
 };
 
-/** Acceptance numbers going down a column from the Ac=0 row. */
-const AC_PROGRESSION = [0, 1, 2, 3, 5, 7, 10, 14, 21] as const;
+/**
+ * Acceptance number by row offset from the Ac=0 row. Offsets 1 and 2 are
+ * the arrow rows that resolve down to the Ac=1 plan (offset 3).
+ */
+const AC_BY_OFFSET: Record<number, number> = {
+  0: 0, 3: 1, 4: 2, 5: 3, 6: 5, 7: 7, 8: 10, 9: 14, 10: 21,
+};
+const MAX_OFFSET = 10;
 
 export function codeLetterFor(lotSize: number, level: InspectionLevel): CodeLetter {
   if (!Number.isFinite(lotSize) || lotSize < 2) {
@@ -116,23 +125,21 @@ export function aqlSingleNormalPlan(
   const nominalIdx = CODE_LETTERS.indexOf(nominalLetter);
   const zeroIdx = CODE_LETTERS.indexOf(FIRST_ZERO_LETTER_BY_AQL[aql]);
 
-  let effectiveIdx: number;
-  let acceptance: number;
-  if (nominalIdx <= zeroIdx) {
-    // Arrow down: use the first sampling plan below (the Ac=0 row).
-    effectiveIdx = zeroIdx;
-    acceptance = 0;
-  } else if (nominalIdx - zeroIdx >= AC_PROGRESSION.length) {
-    // Arrow up: sample size freezes at the Ac=21 row.
-    effectiveIdx = zeroIdx + AC_PROGRESSION.length - 1;
-    acceptance = AC_PROGRESSION[AC_PROGRESSION.length - 1]!;
-  } else {
-    effectiveIdx = nominalIdx;
-    acceptance = AC_PROGRESSION[nominalIdx - zeroIdx]!;
+  let offset = nominalIdx - zeroIdx;
+  if (offset < 0) {
+    offset = 0; // above the Ac=0 row: arrow down to the Ac=0 plan
+  } else if (offset === 1 || offset === 2) {
+    offset = 3; // arrow rows below Ac=0: resolve down to the Ac=1 plan
+  } else if (offset > MAX_OFFSET) {
+    offset = MAX_OFFSET; // below the Ac=21 row: arrow up to the Ac=21 plan
   }
 
-  const letter = CODE_LETTERS[effectiveIdx]!;
-  return { sampleSize: SAMPLE_SIZE_BY_LETTER[letter], acceptanceNumber: acceptance, codeLetter: letter };
+  const letter = CODE_LETTERS[zeroIdx + offset]!;
+  return {
+    sampleSize: SAMPLE_SIZE_BY_LETTER[letter],
+    acceptanceNumber: AC_BY_OFFSET[offset]!,
+    codeLetter: letter,
+  };
 }
 
 export function determineSampling(rule: SamplingRule, lotQuantity: number): SamplingOutcome {
