@@ -17,6 +17,7 @@
     "progress": "node scripts/scan-progress.mjs",
     "progress:serve": "node scripts/scan-progress.mjs && python3 -m http.server 8765 --directory docs --bind 127.0.0.1",
     "suite:start": "node scripts/start-suite.mjs",
+    "suite:smoke": "node scripts/e2e-smoke.mjs",
     "suite:export": "node scripts/export-suite.mjs"
   },
   "engines": {
