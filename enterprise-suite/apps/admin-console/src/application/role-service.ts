@@ -75,6 +75,12 @@ export class RoleService {
     if (patch.inheritsFrom && !this.roles.byCode(ctx.tenantId, patch.inheritsFrom)) {
       throw ValidationError.single("inheritsFrom", `role "${patch.inheritsFrom}" does not exist`);
     }
+    // Checked before the aggregate is touched: the in-memory adapter hands out
+    // live objects, so a mutation that fails validation would otherwise leave a
+    // cyclic role graph behind.
+    if (patch.inheritsFrom !== undefined) {
+      this.assertParentIsReachable(ctx.tenantId, role.code, patch.inheritsFrom ?? undefined);
+    }
     role.update(patch);
     this.roles.save(role);
     this.assertGraphIsAcyclic(ctx.tenantId, role.code);
@@ -168,5 +174,30 @@ export class RoleService {
   private assertGraphIsAcyclic(tenantId: TenantId, code: string): void {
     // resolveRolePermissions throws InvalidStateError on a cycle.
     resolveRolePermissions(code, this.roles.map(tenantId));
+  }
+
+  /**
+   * Walks up from the proposed parent to see whether `code` is already an
+   * ancestor, which is the only way an edit can close a cycle.
+   */
+  private assertParentIsReachable(
+    tenantId: TenantId,
+    code: string,
+    parent: string | undefined,
+  ): void {
+    if (!parent) return;
+    const roles = this.roles.map(tenantId);
+    const chain: string[] = [code];
+    let cursor: string | undefined = parent;
+    while (cursor) {
+      if (chain.includes(cursor)) {
+        throw new InvalidStateError(
+          `Role inheritance cycle: ${[...chain, cursor].join(" -> ")}`,
+          { chain: [...chain, cursor] },
+        );
+      }
+      chain.push(cursor);
+      cursor = roles.get(cursor)?.inheritsFrom;
+    }
   }
 }

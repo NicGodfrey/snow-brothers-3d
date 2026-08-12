@@ -12,7 +12,7 @@ import {
   type TenantSettingsPatch,
   type TenantStatus,
 } from "../domain/tenant.js";
-import type { Clock, EventPublisher, TenantRepository } from "./ports.js";
+import type { Clock, EventPublisher, PolicyVersionStore, TenantRepository } from "./ports.js";
 
 export interface ProvisionTenantInput {
   readonly tenantId?: string;
@@ -26,6 +26,7 @@ export interface ProvisionTenantInput {
 export class TenantService {
   constructor(
     private readonly tenants: TenantRepository,
+    private readonly policyVersions: PolicyVersionStore,
     private readonly clock: Clock,
     private readonly publisher: EventPublisher,
   ) {}
@@ -120,6 +121,9 @@ export class TenantService {
 
   private persist(tenant: Tenant): void {
     this.tenants.save(tenant);
+    // Tenant status and settings feed every authorization decision, so a change here
+    // must invalidate cached decisions just as a role edit does.
+    this.policyVersions.bump(tenant.tenantId);
     this.publisher.publish(tenant.pullEvents());
   }
 }

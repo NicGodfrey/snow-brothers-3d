@@ -95,12 +95,18 @@ export function createIdentityModule(options: IdentityModuleOptions = {}): Ident
     policyVersions: new InMemoryPolicyVersionStore(),
   };
 
-  const tenantService = new TenantService(repositories.tenants, clock, outbox);
+  const tenantService = new TenantService(
+    repositories.tenants,
+    repositories.policyVersions,
+    clock,
+    outbox,
+  );
   const userService = new UserService(
     repositories.users,
     tenantService,
     repositories.sessions,
     repositories.audit,
+    repositories.policyVersions,
     passwordHasher,
     secretHasher,
     clock,
@@ -148,6 +154,7 @@ export function createIdentityModule(options: IdentityModuleOptions = {}): Ident
     tenantService,
     bindingService,
     repositories.audit,
+    repositories.policyVersions,
     secretHasher,
     tokens,
     clock,

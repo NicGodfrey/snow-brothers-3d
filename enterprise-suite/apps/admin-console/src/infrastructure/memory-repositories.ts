@@ -283,22 +283,29 @@ export class InMemoryFeatureFlagRepository implements FeatureFlagRepository {
 }
 
 export class InMemoryAuditRepository implements AuditRepository {
-  private readonly entries: AuditEntry[] = [];
+  // Several commands routinely land in the same millisecond, and audit ids
+  // carry a random suffix, so insertion order is the only stable tiebreak.
+  private readonly entries: { entry: AuditEntry; seq: number }[] = [];
+  private seq = 0;
 
   append(entry: AuditEntry): void {
-    this.entries.push(entry);
+    this.seq += 1;
+    this.entries.push({ entry, seq: this.seq });
   }
 
   query(tenantId: TenantId, query: AuditQuery, request: PageRequest): Page<AuditEntry> {
     const matches = this.entries
-      .filter((entry) => String(entry.tenantId) === String(tenantId))
-      .filter((entry) => matchesAuditQuery(entry, query))
-      .sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || b.id.localeCompare(a.id));
+      .filter(({ entry }) => String(entry.tenantId) === String(tenantId))
+      .filter(({ entry }) => matchesAuditQuery(entry, query))
+      .sort((a, b) => Date.parse(b.entry.at) - Date.parse(a.entry.at) || b.seq - a.seq)
+      .map(({ entry }) => entry);
     return paginate(matches, request);
   }
 
   all(tenantId: TenantId): readonly AuditEntry[] {
-    return this.entries.filter((entry) => String(entry.tenantId) === String(tenantId));
+    return this.entries
+      .filter(({ entry }) => String(entry.tenantId) === String(tenantId))
+      .map(({ entry }) => entry);
   }
 }
 

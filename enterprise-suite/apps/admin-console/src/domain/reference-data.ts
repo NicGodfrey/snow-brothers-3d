@@ -102,7 +102,10 @@ export class ReferenceDataSet extends AggregateRoot<ReferenceDataSetProps> {
       },
       existing,
     );
-    for (const entry of input.entries ?? []) set.addEntry(entry, { silent: true });
+    // Seeded through the same normalisation as a later edit, but not through
+    // `assertEditable`: a locked set is locked against tenants, not against the
+    // platform definition that creates it.
+    for (const entry of input.entries ?? []) set.insertEntry(entry);
     set.raise(
       envelope({
         eventType: AdminEventTypes.referenceSetCreated,
@@ -143,14 +146,7 @@ export class ReferenceDataSet extends AggregateRoot<ReferenceDataSetProps> {
 
   addEntry(input: ReferenceEntryInput, options: { silent?: boolean } = {}): ReferenceEntry {
     this.assertEditable();
-    const entry = this.normalizeEntry(input);
-    if (this.entry(entry.code)) {
-      throw new ValidationError(`Entry "${entry.code}" already exists in ${this.props.code}`, [
-        { field: "code", message: "must be unique within the set" },
-      ]);
-    }
-    this.assertParent(entry);
-    this.props.entries = sortEntries([...this.props.entries, entry]);
+    const entry = this.insertEntry(input);
     if (!options.silent) {
       this.raise(
         envelope({
@@ -162,6 +158,18 @@ export class ReferenceDataSet extends AggregateRoot<ReferenceDataSetProps> {
         }),
       );
     }
+    return entry;
+  }
+
+  private insertEntry(input: ReferenceEntryInput): ReferenceEntry {
+    const entry = this.normalizeEntry(input);
+    if (this.entry(entry.code)) {
+      throw new ValidationError(`Entry "${entry.code}" already exists in ${this.props.code}`, [
+        { field: "code", message: "must be unique within the set" },
+      ]);
+    }
+    this.assertParent(entry);
+    this.props.entries = sortEntries([...this.props.entries, entry]);
     return entry;
   }
 
@@ -198,7 +206,10 @@ export class ReferenceDataSet extends AggregateRoot<ReferenceDataSetProps> {
 
   /**
    * Entries are retired, never removed: documents that reference a code must
-   * keep resolving it. Retiring a parent retires its subtree.
+   * keep resolving it as of the date they were raised. Retirement therefore
+   * closes the effective window rather than clearing `active`, which is the
+   * authoring flag for an entry that is never in force. Retiring a parent
+   * retires its subtree.
    */
   retireEntry(code: string, at: IsoDateTime): string[] {
     this.assertEditable();
@@ -207,7 +218,7 @@ export class ReferenceDataSet extends AggregateRoot<ReferenceDataSetProps> {
     }
     const affected = [code, ...this.descendantsOf(code)];
     this.props.entries = this.props.entries.map((entry) =>
-      affected.includes(entry.code) ? { ...entry, active: false, effectiveTo: at } : entry,
+      affected.includes(entry.code) ? { ...entry, effectiveTo: at } : entry,
     );
     this.raise(
       envelope({

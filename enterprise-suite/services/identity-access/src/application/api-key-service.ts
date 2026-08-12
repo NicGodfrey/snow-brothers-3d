@@ -15,6 +15,7 @@ import type {
   AuditRepository,
   Clock,
   EventPublisher,
+  PolicyVersionStore,
   SecretHasher,
   TokenGenerator,
 } from "./ports.js";
@@ -49,6 +50,7 @@ export class ApiKeyService {
     private readonly tenants: TenantService,
     private readonly roleBindings: RoleBindingService,
     private readonly audit: AuditRepository,
+    private readonly policyVersions: PolicyVersionStore,
     private readonly hasher: SecretHasher,
     private readonly tokens: TokenGenerator,
     private readonly clock: Clock,
@@ -187,6 +189,8 @@ export class ApiKeyService {
     const apiKey = this.get(tenantId, id);
     apiKey.revoke({ at: this.clock.now(), by: options.by, reason: options.reason });
     this.persist(apiKey);
+    // The key stops being a usable subject immediately, so cached allows must go.
+    this.policyVersions.bump(tenantId);
     this.roleBindings.revokeAllFor(tenantId, apiKeySubject(apiKey.id), {
       by: options.by,
       reason: "api_key_revoked",

@@ -15,6 +15,7 @@ import type {
   Clock,
   EventPublisher,
   PasswordHasher,
+  PolicyVersionStore,
   SecretHasher,
   SessionRepository,
   UserRepository,
@@ -44,6 +45,7 @@ export class UserService {
     private readonly tenants: TenantService,
     private readonly sessions: SessionRepository,
     private readonly audit: AuditRepository,
+    private readonly policyVersions: PolicyVersionStore,
     private readonly hasher: PasswordHasher,
     private readonly secrets: SecretHasher,
     private readonly clock: Clock,
@@ -106,7 +108,7 @@ export class UserService {
     const policy = this.tenants.settings(tenantId).passwordPolicy;
     this.assertPasswordAcceptable(input.password, policy);
     user.activateWithPassword(this.hasher.hash(input.password, this.clock.now()), this.clock.now());
-    this.persist(user);
+    this.persistStatusChange(user);
     this.recordAdmin(tenantId, "admin.user.activated", user.id, input.actorId);
     return user;
   }
@@ -154,7 +156,7 @@ export class UserService {
   suspend(tenantId: TenantId, userId: Ulid, reason: string, actorId?: Ulid): User {
     const user = this.get(tenantId, userId);
     user.suspend(reason);
-    this.persist(user);
+    this.persistStatusChange(user);
     this.revokeSessionsFor(tenantId, userId, "user_suspended");
     this.recordAdmin(tenantId, "admin.user.suspended", user.id, actorId, { reason });
     return user;
@@ -163,7 +165,7 @@ export class UserService {
   reactivate(tenantId: TenantId, userId: Ulid, actorId?: Ulid): User {
     const user = this.get(tenantId, userId);
     user.reactivate();
-    this.persist(user);
+    this.persistStatusChange(user);
     this.recordAdmin(tenantId, "admin.user.reactivated", user.id, actorId);
     return user;
   }
@@ -171,7 +173,7 @@ export class UserService {
   deactivate(tenantId: TenantId, userId: Ulid, reason: string, actorId?: Ulid): User {
     const user = this.get(tenantId, userId);
     user.deactivate(reason);
-    this.persist(user);
+    this.persistStatusChange(user);
     this.revokeSessionsFor(tenantId, userId, "user_deactivated");
     this.recordAdmin(tenantId, "admin.user.deactivated", user.id, actorId, { reason });
     return user;
@@ -180,7 +182,7 @@ export class UserService {
   unlock(tenantId: TenantId, userId: Ulid, actorId?: Ulid): User {
     const user = this.get(tenantId, userId);
     user.unlock();
-    this.persist(user);
+    this.persistStatusChange(user);
     this.recordAdmin(tenantId, "admin.user.unlocked", user.id, actorId);
     return user;
   }
@@ -309,5 +311,15 @@ export class UserService {
   private persist(user: User): void {
     this.users.save(user);
     this.publisher.publish(user.pullEvents());
+  }
+
+  /**
+   * A status change decides whether the subject is enabled at all, which authorization
+   * caches on the same key as policy. Bumping the version is the cheapest correct way to
+   * make a suspension take effect immediately.
+   */
+  private persistStatusChange(user: User): void {
+    this.persist(user);
+    this.policyVersions.bump(user.tenantId);
   }
 }
