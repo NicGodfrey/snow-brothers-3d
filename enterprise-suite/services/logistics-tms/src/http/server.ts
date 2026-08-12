@@ -8,11 +8,6 @@ server.listen(port, () => {
   console.log(`[logistics-tms] listening on :${port}`);
 });
 
-// Outbox relay: in production this publishes to the suite event bus; the
-// standalone server logs the envelopes so integration behavior is visible.
-const relay = setInterval(() => {
-  void app.outbox.drain((envelope) => {
-    console.log(`[logistics-tms] event ${envelope.eventType} (${envelope.aggregateId})`);
-  });
-}, 1000);
-relay.unref();
+// Outbox draining is owned by the suite outbox-relay (POST /outbox/drain),
+// which forwards envelopes to integration-hub. A local drain loop here would
+// race it and consume the events before they leave the process.

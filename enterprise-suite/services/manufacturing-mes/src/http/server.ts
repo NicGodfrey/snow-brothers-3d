@@ -17,6 +17,16 @@ export function buildRouter(container: MesContainer): Router {
     eventsBuffered: container.outbox.all().length,
   }));
 
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  router.get("/outbox/pending", async () => ({
+    status: 200,
+    body: { items: container.outbox.all() },
+  }));
+  router.post("/outbox/drain", async () => {
+    const items = container.outbox.drain();
+    return { status: 200, body: { count: items.length, items } };
+  });
+
   registerWorkCenterRoutes(router, container);
   registerCapacityRoutes(router, container);
   registerRoutingRoutes(router, container);

@@ -70,7 +70,21 @@ export function createApiClients(options: ApiClientsOptions): ApiClients {
   const sales = new SalesApi(build("sales", "sales-erp"));
   const marketing = new MarketingApi(build("marketing", "marketing-erp"));
   const inventory = new InventoryApi(build("inventory", "inventory-wms"));
-  const srm = new SrmApi(build("srm", "srm-core"));
+  const procurementHttp = new ApiClient({
+    service: "procurement-srm",
+    baseUrl:
+      options.endpoints.srm.baseUrl.replace(/\/api\/srm\/?$/, "/api/procurement") ||
+      "http://127.0.0.1:4100/api/procurement",
+    transport: options.transport,
+    auth: options.auth,
+    defaultTimeoutMs: options.endpoints.srm.timeoutMs,
+    retries: options.endpoints.srm.retries,
+    onCall: options.onCall,
+    now: options.now,
+    sleep: options.sleep,
+    newRequestId: options.newRequestId,
+  });
+  const srm = new SrmApi(build("srm", "srm-core"), procurementHttp);
   const prm = new PrmApi(build("prm", "prm-core"));
   const finance = new FinanceApi(build("finance", "finance-erp"));
 

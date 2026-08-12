@@ -13,6 +13,17 @@ const MAX_BODY_BYTES = 1_048_576; // 1 MiB
 
 export function buildRouter(module: InventoryModule): Router {
   const router = new Router();
+
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  router.get("/outbox/pending", () => ({
+    status: 200,
+    body: { items: module.outbox.events },
+  }));
+  router.post("/outbox/drain", () => {
+    const items = module.outbox.drain();
+    return { status: 200, body: { count: items.length, items } };
+  });
+
   router.addAll(warehouseRoutes(module.warehouseService));
   router.addAll(stockRoutes(module.stockService));
   router.addAll(reservationRoutes(module.reservationService));

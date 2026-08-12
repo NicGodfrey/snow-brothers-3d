@@ -312,6 +312,17 @@ export function createFinanceApp(): FinanceApp {
     return jsonOk(outbox.list(req.ctx.tenantId, eventType));
   });
 
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  // The log is append-only and retained for /events diagnostics; the drain is
+  // a cursor over it so each call hands out only what is new.
+  let relayCursor = 0;
+  router.get("/outbox/pending", () => jsonOk({ items: outbox.list().slice(relayCursor) }));
+  router.post("/outbox/drain", () => {
+    const items = outbox.list().slice(relayCursor);
+    relayCursor += items.length;
+    return jsonOk({ count: items.length, items });
+  });
+
   return {
     router,
     outbox,

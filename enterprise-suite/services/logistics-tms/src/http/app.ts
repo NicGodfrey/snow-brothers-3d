@@ -1,4 +1,5 @@
 import { createServer, type Server } from "node:http";
+import type { EventEnvelope } from "@enterprise-suite/shared-kernel";
 import { CarrierService } from "../application/carrier-service.js";
 import { DockSchedulingService } from "../application/dock-scheduling-service.js";
 import { LoadService } from "../application/load-service.js";
@@ -64,6 +65,15 @@ export function buildApp(): App {
     // Tenant-gated observability endpoint for the outbox relay.
     void rc.tenant;
     return { status: 200, body: { items: outbox.pending() } };
+  });
+  router.post("/outbox/drain", async (rc) => {
+    // Hands pending envelopes to the suite outbox-relay and marks them published.
+    void rc.tenant;
+    const items: EventEnvelope[] = [];
+    await outbox.drain((envelope) => {
+      items.push(envelope);
+    });
+    return { status: 200, body: { count: items.length, items } };
   });
 
   registerCarrierRoutes(router, carriers);

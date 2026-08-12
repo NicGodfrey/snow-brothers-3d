@@ -46,31 +46,39 @@ enterprise-suite/
 - Shared kernel: Entity, Result, Money, TenantId, EventEnvelope
 - No fake 5M-line padding — depth comes from real domain models, services, APIs, tests, and migrations
 
-## Run the integrated suite
+## Product runbook (local / private pilot)
 
 ```bash
 cd enterprise-suite
-npm install
+npm ci          # or npm install
 npm run suite:start
+# optional: npm run suite:smoke
 ```
 
-This boots domain services (4101–4118), API gateway (`:4100`, `ASSUME_DEPLOYED`), admin console (`:4119`), web portal (`:4300`), and a suite shell at:
+Docker:
+
+```bash
+docker compose up --build
+```
 
 | Surface | URL |
 |---------|-----|
 | Suite shell | http://127.0.0.1:4000/ |
-| Web Portal | http://127.0.0.1:4300/ |
+| Web Portal | http://127.0.0.1:4300/ (live gateway; tenant `demo`) |
 | Admin Console | http://127.0.0.1:4119/ |
 | API Gateway | http://127.0.0.1:4100/ |
 | OpenAPI | http://127.0.0.1:4100/openapi.json |
 
-Export a portable archive + link map:
+Portal sign-in uses directory emails (e.g. `jordan.blake@acme.test`) on tenant **demo**.  
+`SUITE_AUTH_SECRET` signs suite tokens; local demo default is only for private use.
+
+Export:
 
 ```bash
 npm run suite:export
-# writes /opt/cursor/artifacts/enterprise-suite-*.tar.gz
-# and docs/export-links.json
 ```
+
+Scope honesty: in-memory persistence unless you add DB adapters; treat as private pilot, not public SaaS.
 
 ## Build progress dashboard
 

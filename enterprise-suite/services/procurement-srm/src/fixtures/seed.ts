@@ -41,7 +41,7 @@ function id(value: string): Ulid {
  *
  * Used by the tests and `npm run dev`; safe to call once per tenant.
  */
-export function seedDemoTenant(module: ProcurementModule, tenant = "acme"): SeedResult {
+export function seedDemoTenant(module: ProcurementModule, tenant = "demo"): SeedResult {
   const t = tenantId(tenant);
   const currency = "USD";
   const {

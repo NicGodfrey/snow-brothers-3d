@@ -17,6 +17,21 @@ const MAX_BODY_BYTES = 1_048_576; // 1 MiB
 export function buildRouter(module: MarketingModule): Router {
   const router = new Router();
   const { services } = module;
+
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  // `dispatchPending` marks events for the *local* subscribers, so the relay
+  // keeps its own cursor over the append-only log instead of reusing it.
+  let relayCursor = 0;
+  router.get("/outbox/pending", () => ({
+    status: 200,
+    body: { items: module.outbox.all().slice(relayCursor) },
+  }));
+  router.post("/outbox/drain", () => {
+    const items = module.outbox.all().slice(relayCursor);
+    relayCursor += items.length;
+    return { status: 200, body: { count: items.length, items } };
+  });
+
   registerChannelRoutes(router, services.channels);
   registerCampaignRoutes(router, services.campaigns, services.budgets, services.sendJobs);
   registerSegmentRoutes(router, services.segments, services.audiences);

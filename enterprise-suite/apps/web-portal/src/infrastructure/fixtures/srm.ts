@@ -216,8 +216,8 @@ export const buildSrmFixture: FixtureBuilder = (ctx) => {
         slug: "contracts",
         rows: contracts,
         searchable: ["reference", "supplierName", "type"],
-        title: (row) => row.reference,
-        subtitle: (row) => `Contract · ${row.supplierName}`,
+        title: (row) => row.reference ?? row.contractNumber ?? row.id,
+        subtitle: (row) => `Contract · ${row.supplierName ?? row.supplierId}`,
       }),
     ],
     summary: {

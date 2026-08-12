@@ -22,6 +22,13 @@ export function buildRouter(module: SalesModule): Router {
     }),
   );
 
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  router.get("/outbox/pending", () => respond(200, { items: module.outbox.all() }));
+  router.post("/outbox/drain", () => {
+    const events = module.outbox.drain();
+    return respond(200, { count: events.length, items: events });
+  });
+
   registerAccountRoutes(router, module);
   registerOpportunityRoutes(router, module);
   registerPriceListRoutes(router, module);

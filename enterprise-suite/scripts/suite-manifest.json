@@ -24,8 +24,9 @@
     { "id": "reporting-bi", "cwd": "services/reporting-bi", "entry": "src/http/main.ts", "port": 4118 }
   ],
   "apps": [
-    { "id": "api-gateway", "cwd": "packages/api-gateway", "entry": "src/http/main.ts", "port": 4100, "env": { "ASSUME_DEPLOYED": "true" } },
-    { "id": "admin-console", "cwd": "apps/admin-console", "entry": "src/http/main.ts", "port": 4119 },
-    { "id": "web-portal", "cwd": "apps/web-portal", "entry": "src/http/main.ts", "port": 4300, "env": { "PORTAL_TRANSPORT": "mock" } }
+    { "id": "api-gateway", "cwd": "packages/api-gateway", "entry": "src/http/main.ts", "port": 4100, "env": { "ASSUME_DEPLOYED": "true", "SUITE_TRUST_HEADERS": "true", "SUITE_AUTH_SECRET": "local-demo-only-suite-auth-secret" } },
+    { "id": "admin-console", "cwd": "apps/admin-console", "entry": "src/http/main.ts", "port": 4119, "env": { "SUITE_TRUST_HEADERS": "true", "SUITE_AUTH_SECRET": "local-demo-only-suite-auth-secret" } },
+    { "id": "web-portal", "cwd": "apps/web-portal", "entry": "src/http/main.ts", "port": 4300, "env": { "PORTAL_TRANSPORT": "http", "PORTAL_GATEWAY_URL": "http://127.0.0.1:4100", "PORTAL_DEFAULT_TENANT": "demo", "SUITE_AUTH_SECRET": "local-demo-only-suite-auth-secret", "SUITE_TRUST_HEADERS": "true" } },
+    { "id": "outbox-relay", "cwd": ".", "entry": "scripts/outbox-relay.mjs", "port": 0, "critical": false, "env": { "SUITE_TRUST_HEADERS": "true", "OUTBOX_RELAY_TENANT": "demo" } }
   ]
 }

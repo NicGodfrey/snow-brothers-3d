@@ -25,6 +25,19 @@ export function buildRouter(container: SrmContainer): Router {
     return jsonResponse(200, events);
   });
 
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  // The log is append-only and retained for /events diagnostics; the drain is
+  // a cursor over it so each call hands out only what is new.
+  let relayCursor = 0;
+  router.get("/outbox/pending", () =>
+    jsonResponse(200, { items: container.outbox.entries().slice(relayCursor) }),
+  );
+  router.post("/outbox/drain", () => {
+    const items = container.outbox.entries().slice(relayCursor);
+    relayCursor += items.length;
+    return jsonResponse(200, { count: items.length, items });
+  });
+
   registerCategoryRoutes(router, container);
   registerSupplierRoutes(router, container);
   registerOnboardingRoutes(router, container);

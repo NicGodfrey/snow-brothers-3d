@@ -10,6 +10,14 @@ import type { TenantProfile, UserProfile } from "../../domain/session.js";
 
 export const TENANTS: readonly TenantProfile[] = [
   {
+    tenantId: "demo",
+    name: "Demo Enterprise",
+    entitlements: ["sales", "marketing", "inventory", "srm", "prm", "finance"],
+    defaultLocale: "en-US",
+    defaultCurrency: "USD",
+    featureFlags: { commandPalette: true, mdfWorkflow: true, darkMode: true },
+  },
+  {
     tenantId: "acme",
     name: "Acme Manufacturing",
     entitlements: ["sales", "marketing", "inventory", "srm", "prm", "finance"],
@@ -34,6 +42,7 @@ export const USERS: readonly UserProfile[] = [
     displayName: "Avery Chen",
     email: "avery.chen@acme.test",
     memberships: {
+      demo: ["sales-manager", "channel-manager", "tenant-admin"],
       acme: ["sales-manager", "channel-manager"],
       globex: ["viewer"],
     },
@@ -42,25 +51,39 @@ export const USERS: readonly UserProfile[] = [
     userId: "u-jordan",
     displayName: "Jordan Blake",
     email: "jordan.blake@acme.test",
-    memberships: { acme: ["buyer", "warehouse-clerk"] },
+    memberships: {
+      demo: ["buyer", "warehouse-clerk"],
+      acme: ["buyer", "warehouse-clerk"],
+    },
   },
   {
     userId: "u-rin",
     displayName: "Rin Watanabe",
     email: "rin.watanabe@acme.test",
-    memberships: { acme: ["controller"], globex: ["accountant"] },
+    memberships: {
+      demo: ["controller"],
+      acme: ["controller"],
+      globex: ["accountant"],
+    },
   },
   {
     userId: "u-sam",
     displayName: "Sam Okafor",
     email: "sam.okafor@acme.test",
-    memberships: { acme: ["marketing-manager"] },
+    memberships: {
+      demo: ["marketing-manager"],
+      acme: ["marketing-manager"],
+    },
   },
   {
     userId: "u-admin",
     displayName: "Dana Reyes",
     email: "dana.reyes@acme.test",
-    memberships: { acme: ["tenant-admin"], globex: ["tenant-admin"] },
+    memberships: {
+      demo: ["tenant-admin"],
+      acme: ["tenant-admin"],
+      globex: ["tenant-admin"],
+    },
   },
 ];
 

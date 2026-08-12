@@ -37,7 +37,7 @@ const GATEWAY_PREFIX: Readonly<Record<ModuleKey, string>> = {
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): PortalConfig {
-  const gatewayUrl = (env.PORTAL_GATEWAY_URL ?? "http://127.0.0.1:8080").replace(/\/+$/, "");
+  const gatewayUrl = (env.PORTAL_GATEWAY_URL ?? "http://127.0.0.1:4100").replace(/\/+$/, "");
   const timeoutMs = intFromEnv(env.PORTAL_REQUEST_TIMEOUT_MS, 5_000);
   const endpoints = Object.fromEntries(
     MODULE_KEYS.map((key) => [
@@ -50,15 +50,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): PortalConfig {
     ]),
   ) as Record<ModuleKey, EndpointConfig>;
 
+  // Prefer live HTTP whenever an explicit gateway URL is provided, unless mock is forced.
+  const transport: TransportMode =
+    env.PORTAL_TRANSPORT === "mock"
+      ? "mock"
+      : env.PORTAL_TRANSPORT === "http" || Boolean(env.PORTAL_GATEWAY_URL)
+        ? "http"
+        : "mock";
+
   return {
     port: intFromEnv(env.PORT, 4300),
-    transport: env.PORTAL_TRANSPORT === "http" ? "http" : "mock",
+    transport,
     gatewayUrl,
     endpoints,
     sessionTtlMinutes: intFromEnv(env.PORTAL_SESSION_TTL_MINUTES, 480),
     suiteAuthSecret: env.SUITE_AUTH_SECRET ?? LOCAL_DEMO_SUITE_AUTH_SECRET,
     trustHeaders: env.SUITE_TRUST_HEADERS === "true",
-    defaultTenantId: env.PORTAL_DEFAULT_TENANT ?? "acme",
+    defaultTenantId: env.PORTAL_DEFAULT_TENANT ?? "demo",
     requestTimeoutMs: timeoutMs,
     mockLatencyMs: intFromEnv(env.PORTAL_MOCK_LATENCY_MS, 0),
   };

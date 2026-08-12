@@ -16,6 +16,20 @@ export function buildRouter(module: SupplyChainModule): Router {
     async () => ({ status: 200, body: { status: "ok", service: "supply-chain" } }),
     { anonymous: true },
   );
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  // The log is append-only and retained for local subscribers/tests; the drain
+  // is a cursor over it so each call hands out only what is new.
+  let relayCursor = 0;
+  router.get("/outbox/pending", async () => ({
+    status: 200,
+    body: { items: module.outbox.events().slice(relayCursor) },
+  }));
+  router.post("/outbox/drain", async () => {
+    const items = module.outbox.events().slice(relayCursor);
+    relayCursor += items.length;
+    return { status: 200, body: { count: items.length, items } };
+  });
+
   registerItemRoutes(router, module);
   registerSafetyStockRoutes(router, module);
   registerForecastRoutes(router, module);

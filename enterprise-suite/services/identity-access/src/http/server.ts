@@ -28,6 +28,19 @@ export function createIdentityRouter(module: IdentityModule): Router {
   );
   router.get("/identity/routes", () => ok(router.routeTable()), { public: true });
 
+  // Outbox integration endpoints for the suite outbox-relay (integration-hub).
+  // Public like /health/ready: the relay is an infrastructure process without
+  // a user session; events carry their own tenant id.
+  router.get("/outbox/pending", () => ok({ items: module.outbox.pending() }), { public: true });
+  router.post(
+    "/outbox/drain",
+    () => {
+      const events = module.outbox.drain();
+      return ok({ count: events.length, items: events });
+    },
+    { public: true },
+  );
+
   registerAuthRoutes(router, module);
   registerTenantRoutes(router, module);
   registerUserRoutes(router, module);
