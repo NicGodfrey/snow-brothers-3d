@@ -85,6 +85,7 @@ export interface RoleRepository {
   list(tenantId: TenantId): readonly Role[];
   /** Code-keyed map used by the evaluator to resolve inheritance without N lookups. */
   map(tenantId: TenantId): ReadonlyMap<RoleCode, Role>;
+  count(tenantId: TenantId): number;
   delete(tenantId: TenantId, id: Ulid): void;
 }
 
@@ -106,6 +107,7 @@ export interface RoleBindingRepository {
   bySubjects(tenantId: TenantId, subjects: readonly SubjectRef[]): readonly RoleBinding[];
   byRole(tenantId: TenantId, roleCode: RoleCode): readonly RoleBinding[];
   list(tenantId: TenantId): readonly RoleBinding[];
+  count(tenantId: TenantId): number;
 }
 
 export interface ApiKeyRepository {
