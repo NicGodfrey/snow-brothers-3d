@@ -149,6 +149,6 @@ export class ShiftTemplate extends AggregateRoot<ShiftTemplateProps> {
 
   /** Total weekly productive minutes — handy for rough-cut capacity. */
   netMinutesPerWeek(): number {
-    return ALL_WEEKDAYS.reduce((sum, day) => sum + this.netMinutesOn(day), 0);
+    return ALL_WEEKDAYS.reduce<number>((sum, day) => sum + this.netMinutesOn(day), 0);
   }
 }
