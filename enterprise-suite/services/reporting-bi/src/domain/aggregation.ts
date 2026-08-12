@@ -613,6 +613,12 @@ function sortRows(rows: MutableRow[], query: CubeQuery): void {
         : [{ key: query.metrics[0]!, direction: "desc" as const }];
 
   rows.sort((a, b) => {
+    // The residual bucket is a footer, not a competitor: it stays last
+    // however the caller has chosen to rank the real groups.
+    const aOther = isOtherRow(a);
+    const bOther = isOtherRow(b);
+    if (aOther !== bOther) return aOther ? 1 : -1;
+
     for (const clause of orderBy) {
       const factor = clause.direction === "asc" ? 1 : -1;
       const isMetric = Object.prototype.hasOwnProperty.call(a.metrics, clause.key);
@@ -623,6 +629,10 @@ function sortRows(rows: MutableRow[], query: CubeQuery): void {
     }
     return a.identity.localeCompare(b.identity);
   });
+}
+
+function isOtherRow(row: MutableRow): boolean {
+  return row.identity.startsWith(OTHER_KEY);
 }
 
 /** Nulls sort last regardless of direction, matching NULLS LAST. */

@@ -90,8 +90,14 @@ export class MetricService {
 
   async deprecateMetric(ctx: TenantContext, code: string, reason: string): Promise<MetricDefinition> {
     const metric = await this.getMetric(ctx, code);
+    // Already-deprecated dependents do not block: they are on their way out
+    // too, and requiring a particular deprecation order would make retiring
+    // a whole family of metrics impossible.
     const dependents = (await this.metrics.list(ctx.tenantId, { cube: metric.cube })).filter(
-      (candidate) => candidate.code !== code && candidate.dependencies().includes(code),
+      (candidate) =>
+        candidate.code !== code &&
+        candidate.status !== "deprecated" &&
+        candidate.dependencies().includes(code),
     );
     if (dependents.length > 0) {
       throw new ConflictError(
