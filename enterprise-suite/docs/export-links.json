@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-08-12T14:41:44.069Z",
+  "archive": "/opt/cursor/artifacts/enterprise-suite-2026-08-12T14-41-42-217Z.tar.gz",
+  "archiveCopy": "/workspace/enterprise-suite/docs/exports/enterprise-suite-2026-08-12T14-41-42-217Z.tar.gz",
+  "githubPr": "https://github.com/NicGodfrey/snow-brothers-3d/pull/1",
+  "branch": "cursor/enterprise-erp-srm-prm-f08d",
+  "localShell": "http://127.0.0.1:4000/",
+  "localPortal": "http://127.0.0.1:4300/",
+  "localAdmin": "http://127.0.0.1:4119/",
+  "localGateway": "http://127.0.0.1:4100/",
+  "localProgress": "http://127.0.0.1:8765/progress.html",
+  "startCommand": "cd enterprise-suite && npm install && npm run suite:start"
+}

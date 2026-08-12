@@ -63,7 +63,7 @@ export function buildServiceCatalog(options: CatalogOptions = {}): ServiceCatalo
       planned: options.assumeDeployed ? false : seed.planned,
       owner: seed.owner,
       tags: seed.tags,
-      readyPath: "/health/ready",
+      readyPath: "/health",
       openapiPath: "/openapi.json",
     }),
   );

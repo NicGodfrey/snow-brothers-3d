@@ -46,6 +46,32 @@ enterprise-suite/
 - Shared kernel: Entity, Result, Money, TenantId, EventEnvelope
 - No fake 5M-line padding — depth comes from real domain models, services, APIs, tests, and migrations
 
+## Run the integrated suite
+
+```bash
+cd enterprise-suite
+npm install
+npm run suite:start
+```
+
+This boots domain services (4101–4118), API gateway (`:4100`, `ASSUME_DEPLOYED`), admin console (`:4119`), web portal (`:4300`), and a suite shell at:
+
+| Surface | URL |
+|---------|-----|
+| Suite shell | http://127.0.0.1:4000/ |
+| Web Portal | http://127.0.0.1:4300/ |
+| Admin Console | http://127.0.0.1:4119/ |
+| API Gateway | http://127.0.0.1:4100/ |
+| OpenAPI | http://127.0.0.1:4100/openapi.json |
+
+Export a portable archive + link map:
+
+```bash
+npm run suite:export
+# writes /opt/cursor/artifacts/enterprise-suite-*.tar.gz
+# and docs/export-links.json
+```
+
 ## Build progress dashboard
 
 ```bash

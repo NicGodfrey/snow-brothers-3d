@@ -1,0 +1,31 @@
+{
+  "shellPort": 4000,
+  "gatewayPort": 4100,
+  "portalPort": 4300,
+  "adminPort": 4119,
+  "services": [
+    { "id": "identity-access", "cwd": "services/identity-access", "entry": "src/main.ts", "port": 4101 },
+    { "id": "master-data", "cwd": "services/master-data", "entry": "src/http/main.ts", "port": 4102 },
+    { "id": "sales-erp", "cwd": "services/sales-erp", "entry": "src/http/main.ts", "port": 4103 },
+    { "id": "marketing-erp", "cwd": "services/marketing-erp", "entry": "src/http/main.ts", "port": 4104 },
+    { "id": "product-plm", "cwd": "services/product-plm", "entry": "src/http/main.ts", "port": 4105 },
+    { "id": "supply-chain", "cwd": "services/supply-chain", "entry": "src/http/main.ts", "port": 4106 },
+    { "id": "inventory-wms", "cwd": "services/inventory-wms", "entry": "src/http/main.ts", "port": 4107 },
+    { "id": "finance-erp", "cwd": "services/finance-erp", "entry": "src/http/server.ts", "port": 4108 },
+    { "id": "manufacturing-mes", "cwd": "services/manufacturing-mes", "entry": "src/http/server.ts", "port": 4109 },
+    { "id": "hcm-erp", "cwd": "services/hcm-erp", "entry": "src/http/main.ts", "port": 4110 },
+    { "id": "quality-qms", "cwd": "services/quality-qms", "entry": "src/main.ts", "port": 4111 },
+    { "id": "logistics-tms", "cwd": "services/logistics-tms", "entry": "src/http/server.ts", "port": 4112 },
+    { "id": "srm-core", "cwd": "services/srm-core", "entry": "src/http/main.ts", "port": 4113 },
+    { "id": "procurement-srm", "cwd": "services/procurement-srm", "entry": "src/http/main.ts", "port": 4114 },
+    { "id": "prm-core", "cwd": "services/prm-core", "entry": "src/http/main.ts", "port": 4115 },
+    { "id": "channel-prm", "cwd": "services/channel-prm", "entry": "src/http/main.ts", "port": 4116 },
+    { "id": "integration-hub", "cwd": "services/integration-hub", "entry": "src/main.ts", "port": 4117 },
+    { "id": "reporting-bi", "cwd": "services/reporting-bi", "entry": "src/http/main.ts", "port": 4118 }
+  ],
+  "apps": [
+    { "id": "api-gateway", "cwd": "packages/api-gateway", "entry": "src/http/main.ts", "port": 4100, "env": { "ASSUME_DEPLOYED": "true" } },
+    { "id": "admin-console", "cwd": "apps/admin-console", "entry": "src/http/main.ts", "port": 4119 },
+    { "id": "web-portal", "cwd": "apps/web-portal", "entry": "src/http/main.ts", "port": 4300, "env": { "PORTAL_TRANSPORT": "mock" } }
+  ]
+}
