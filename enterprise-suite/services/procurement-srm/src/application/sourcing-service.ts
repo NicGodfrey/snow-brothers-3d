@@ -361,7 +361,11 @@ export class SourcingService {
       quotes.map((quote) => quote.supplierId),
     );
     const baseline = options.baseline ?? this.baselineFor(tenantId, rfq);
-    return evaluateQuotes(rfq, quotes, suppliers, { ...options, baseline });
+    return evaluateQuotes(rfq, quotes, suppliers, {
+      ...options,
+      baseline,
+      onDate: options.onDate ?? this.clock.today(),
+    });
   }
 
   /**

@@ -1,5 +1,13 @@
 import { money, type Money, type Ulid } from "@enterprise-suite/shared-kernel";
-import { BPS_ONE, extendPrice, subMoney, sumMoney, varianceBps, zeroMoney } from "./common.js";
+import {
+  BPS_ONE,
+  extendPrice,
+  subMoney,
+  sumMoney,
+  varianceBps,
+  zeroMoney,
+  type IsoDate,
+} from "./common.js";
 import type { RequestForQuote } from "./rfq.js";
 import type { SupplierQuote } from "./quote.js";
 import type { RiskTier } from "./supplier.js";
@@ -94,7 +102,7 @@ const RISK_SCORE_BPS: Record<RiskTier, number> = {
 
 export interface EvaluationOptions {
   /** Quotes not valid on this date are excluded. */
-  readonly onDate?: string;
+  readonly onDate?: IsoDate;
   /** Estimated value from the requisition, used for the savings figure. */
   readonly baseline?: Money;
   /** Include quotes that do not cover every RFQ line (default true). */
@@ -130,6 +138,10 @@ export function evaluateQuotes(
     }
     if (quote.currency !== currency) {
       excluded.push({ quoteId: quote.id, reason: `quoted in ${quote.currency}, RFQ is ${currency}` });
+      return false;
+    }
+    if (options.onDate && !quote.isValidOn(options.onDate)) {
+      excluded.push({ quoteId: quote.id, reason: `expired on ${quote.validUntil}` });
       return false;
     }
     return true;
