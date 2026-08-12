@@ -262,9 +262,6 @@ export class WorkOrderService {
     cmd: ReportOperationCommand,
   ): Promise<{ workOrder: WorkOrder; scrapRecord: ScrapRecord | null }> {
     const workOrder = await this.get(ctx, id);
-    if (workOrder.status === "RELEASED") {
-      workOrder.start();
-    }
     const qtyScrap = cmd.qtyScrap ?? 0;
     let scrapRecord: ScrapRecord | null = null;
     let scrapReason: ScrapReasonCode | null = null;
@@ -277,6 +274,9 @@ export class WorkOrderService {
         );
       }
       scrapReason = cmd.scrapReasonCode;
+    }
+    if (workOrder.status === "RELEASED") {
+      workOrder.start();
     }
     workOrder.reportOperation({
       seq: cmd.seq,
