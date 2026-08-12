@@ -84,8 +84,12 @@ export class EmployeeService {
       if (!manager.isEmployed()) {
         throw new ConflictError(`Manager ${manager.employeeNumber} is terminated`);
       }
-      // Walking up from the new manager must never reach the employee.
-      let cursor: Employee | undefined = manager;
+      // Walking up from the new manager's own manager must never reach the
+      // employee. Starting one level up lets the aggregate report the more
+      // specific SELF_MANAGER error for the manager === employee case.
+      let cursor: Employee | undefined = manager.managerEmployeeId
+        ? this.employees.findById(tenantId, manager.managerEmployeeId)
+        : undefined;
       let depth = 0;
       while (cursor) {
         if (cursor.id === employee.id) {

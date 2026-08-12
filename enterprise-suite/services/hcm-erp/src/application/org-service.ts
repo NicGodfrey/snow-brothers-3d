@@ -223,8 +223,13 @@ export class OrgService {
   changePositionReportsTo(tenantId: TenantId, id: Ulid, reportsToPositionId?: Ulid): Position {
     const position = this.getPosition(tenantId, id);
     if (reportsToPositionId) {
-      // Walking the reporting chain from the new boss must not reach `position`.
-      let cursor: Position | undefined = this.getPosition(tenantId, reportsToPositionId);
+      // Walking the reporting chain upward from the new boss must not reach
+      // `position`. Starting one level up lets the aggregate report the more
+      // specific POSITION_SELF_REPORT error for the self case.
+      const newBoss = this.getPosition(tenantId, reportsToPositionId);
+      let cursor: Position | undefined = newBoss.reportsToPositionId
+        ? this.positions.findById(tenantId, newBoss.reportsToPositionId)
+        : undefined;
       let depth = 0;
       while (cursor) {
         if (cursor.id === position.id) {
