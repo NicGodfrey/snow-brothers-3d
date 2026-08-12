@@ -29,14 +29,17 @@ export function formatApiKeyToken(prefix: string, secret: string): string {
 }
 
 export function parseApiKeyToken(token: string): ParsedApiKeyToken {
+  // The lookup prefix is drawn from an alphabet without `_`, so the first two segments
+  // are structural; the base64url secret that follows may contain `_` and is rejoined.
   const parts = token.trim().split("_");
-  if (parts.length !== 3 || parts[0] !== API_KEY_TOKEN_PREFIX || !parts[1] || !parts[2]) {
+  const secret = parts.slice(2).join("_");
+  if (parts[0] !== API_KEY_TOKEN_PREFIX || !parts[1] || !secret) {
     throw new ValidationError(
       "Malformed API key token; expected esk_<prefix>_<secret>",
       IDENTITY_ERROR.apiKeyMalformed,
     );
   }
-  return { prefix: parts[1], secret: parts[2] };
+  return { prefix: parts[1], secret };
 }
 
 interface ApiKeyProps {

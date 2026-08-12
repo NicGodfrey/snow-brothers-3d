@@ -60,13 +60,26 @@ export class Sha256SecretHasher implements SecretHasher {
   }
 }
 
+/** Lowercase alphanumerics only: the prefix is a token segment, so it must not contain `_`. */
+const PREFIX_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
+/** Largest multiple of the alphabet size inside a byte; the tail is rejected to avoid modulo bias. */
+const PREFIX_BIAS_LIMIT = 252;
+
 export class RandomTokenGenerator implements TokenGenerator {
   secret(bytes = 32): string {
     return randomBytes(bytes).toString("base64url");
   }
 
   prefix(length = 10): string {
-    return randomBytes(length).toString("base64url").slice(0, length).toLowerCase();
+    let out = "";
+    while (out.length < length) {
+      for (const byte of randomBytes(length)) {
+        if (byte >= PREFIX_BIAS_LIMIT) continue;
+        out += PREFIX_ALPHABET[byte % PREFIX_ALPHABET.length];
+        if (out.length === length) break;
+      }
+    }
+    return out;
   }
 }
 

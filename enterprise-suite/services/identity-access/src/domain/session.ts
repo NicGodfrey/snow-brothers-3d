@@ -35,11 +35,15 @@ export function formatSessionToken(sessionId: Ulid, secret: string): string {
 }
 
 export function parseSessionToken(token: string): { sessionId: Ulid; secret: string } {
+  // Only the first three segments are structural (`est`, then the two halves of the
+  // session id). The secret is base64url, whose alphabet includes `_`, so everything
+  // after them is rejoined rather than counted.
   const parts = token.trim().split("_");
-  if (parts.length !== 4 || parts[0] !== SESSION_TOKEN_PREFIX) {
+  const secret = parts.slice(3).join("_");
+  if (parts[0] !== SESSION_TOKEN_PREFIX || !parts[1] || !parts[2] || !secret) {
     throw new IdentityError("Malformed session token", IDENTITY_ERROR.invalidCredentials, 401);
   }
-  return { sessionId: brand<string, "Ulid">(`${parts[1]}_${parts[2]}`), secret: parts[3] };
+  return { sessionId: brand<string, "Ulid">(`${parts[1]}_${parts[2]}`), secret };
 }
 
 interface SessionProps {
