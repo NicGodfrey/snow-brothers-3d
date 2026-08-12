@@ -21,8 +21,7 @@
     { "id": "prm-core", "cwd": "services/prm-core", "entry": "src/http/main.ts", "port": 4115 },
     { "id": "channel-prm", "cwd": "services/channel-prm", "entry": "src/http/main.ts", "port": 4116 },
     { "id": "integration-hub", "cwd": "services/integration-hub", "entry": "src/main.ts", "port": 4117 },
-    { "id": "reporting-bi", "cwd": "services/reporting-bi", "entry": "src/http/main.ts", "port": 4118 },
-    { "id": "outbox-relay", "cwd": "services/outbox-relay", "entry": "src/main.ts", "port": 4120 }
+    { "id": "reporting-bi", "cwd": "services/reporting-bi", "entry": "src/http/main.ts", "port": 4118 }
   ],
   "apps": [
     { "id": "api-gateway", "cwd": "packages/api-gateway", "entry": "src/http/main.ts", "port": 4100, "env": { "ASSUME_DEPLOYED": "true", "SUITE_TRUST_HEADERS": "true", "SUITE_AUTH_SECRET": "local-demo-only-suite-auth-secret" } },
