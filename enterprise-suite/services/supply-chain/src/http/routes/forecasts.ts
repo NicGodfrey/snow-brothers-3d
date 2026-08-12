@@ -19,7 +19,7 @@ export function registerForecastRoutes(router: Router, module: SupplyChainModule
       sku: requireString(body, "sku"),
       location: requireLocation(body),
       source: source as ForecastSource | undefined,
-      entries: entriesRaw ? parseWeekEntries(entriesRaw, "qty") : undefined,
+      entries: entriesRaw ? parseWeekEntries(entriesRaw) : undefined,
       notes: optionalString(body, "notes"),
     });
     return { status: 201, body: forecast.toJSON() };
@@ -41,7 +41,7 @@ export function registerForecastRoutes(router: Router, module: SupplyChainModule
 
   router.put("/forecasts/:id/entries", async (req) => {
     const body = asObject(req.body);
-    const entries = parseWeekEntries(requireArrayOf(body, "entries"), "qty");
+    const entries = parseWeekEntries(requireArrayOf(body, "entries"));
     const forecast = await module.forecasts.upsertEntries(req.ctx, req.params.id as Ulid, entries);
     return { status: 200, body: forecast.toJSON() };
   });

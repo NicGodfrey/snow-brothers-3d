@@ -2,7 +2,14 @@ import type { Ulid } from "@enterprise-suite/shared-kernel";
 import { DomainError } from "@enterprise-suite/shared-kernel";
 import type { SupplyChainModule } from "../../infrastructure/module.js";
 import type { Router } from "../router.js";
-import { asObject, optionalArray, optionalNumber, optionalString, parseWeekEntries, queryInt, requireString } from "../validate.js";
+import { asObject, optionalArray, optionalNumber, optionalString, queryInt, requireNumber, requireString } from "../validate.js";
+
+function parseCapacityWeeks(raw: unknown[]): { weekStart: string; capacityQty: number }[] {
+  return raw.map((entry, i) => {
+    const obj = asObject(entry, `weeks[${i}]`);
+    return { weekStart: requireString(obj, "weekStart"), capacityQty: requireNumber(obj, "capacityQty") };
+  });
+}
 
 export function registerSupplierCalendarRoutes(router: Router, module: SupplyChainModule): void {
   router.post("/supplier-calendars", async (req) => {
@@ -13,7 +20,7 @@ export function registerSupplierCalendarRoutes(router: Router, module: SupplyCha
       sku: optionalString(body, "sku"),
       name: optionalString(body, "name"),
       defaultWeeklyCapacity: optionalNumber(body, "defaultWeeklyCapacity"),
-      weeks: weeksRaw ? parseWeekEntries(weeksRaw, "capacityQty") : undefined,
+      weeks: weeksRaw ? parseCapacityWeeks(weeksRaw) : undefined,
     });
     return { status: 201, body: calendar.toJSON() };
   });
@@ -34,7 +41,7 @@ export function registerSupplierCalendarRoutes(router: Router, module: SupplyCha
     if (!Array.isArray(weeks) || weeks.length === 0) {
       throw new DomainError("weeks must be a non-empty array", "VALIDATION");
     }
-    const calendar = await module.capacity.setWeeks(req.ctx, req.params.id as Ulid, parseWeekEntries(weeks, "capacityQty"));
+    const calendar = await module.capacity.setWeeks(req.ctx, req.params.id as Ulid, parseCapacityWeeks(weeks));
     return { status: 200, body: calendar.toJSON() };
   });
 

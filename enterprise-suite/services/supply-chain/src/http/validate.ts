@@ -80,9 +80,9 @@ export function queryInt(query: Record<string, string>, key: string, fallback: n
   return value;
 }
 
-export function parseWeekEntries(raw: unknown[], qtyKey: string): { weekStart: string; qty: number }[] {
+export function parseWeekEntries(raw: unknown[]): { weekStart: string; qty: number }[] {
   return raw.map((entry, i) => {
     const obj = asObject(entry, `entries[${i}]`);
-    return { weekStart: requireString(obj, "weekStart"), qty: requireNumber(obj, qtyKey) };
+    return { weekStart: requireString(obj, "weekStart"), qty: requireNumber(obj, "qty") };
   });
 }

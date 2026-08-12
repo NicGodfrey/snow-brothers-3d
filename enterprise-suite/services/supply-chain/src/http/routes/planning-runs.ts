@@ -21,7 +21,7 @@ export function registerPlanningRunRoutes(router: Router, module: SupplyChainMod
       status: 200,
       body: {
         runs: runs.map((run) => {
-          const { audit, ...rest } = run.toJSON() as Record<string, unknown>;
+          const { audit, ...rest } = run.toJSON() as unknown as Record<string, unknown>;
           return { ...rest, auditEntryCount: Array.isArray(audit) ? audit.length : 0 };
         }),
       },

@@ -1,0 +1,1 @@
+{"version":3,"file":"forecasts.d.ts","sourceRoot":"","sources":["../../../src/http/routes/forecasts.ts"],"names":[],"mappings":"AAGA,OAAO,KAAK,EAAE,iBAAiB,EAAE,MAAM,gCAAgC,CAAC;AACxE,OAAO,KAAK,EAAE,MAAM,EAAE,MAAM,cAAc,CAAC;AAK3C,wBAAgB,sBAAsB,CAAC,MAAM,EAAE,MAAM,EAAE,MAAM,EAAE,iBAAiB,GAAG,IAAI,CAgDtF"}
