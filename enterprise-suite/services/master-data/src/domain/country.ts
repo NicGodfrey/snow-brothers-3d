@@ -1038,6 +1038,14 @@ export function vatPrefixFor(code: string): string | undefined {
   return found.vatPrefix ?? String(found.alpha2);
 }
 
+/** The country a VAT prefix belongs to ("EL" -> Greece, "DE" -> Germany). */
+export function countryForVatPrefix(prefix: string): Country | undefined {
+  const normalized = prefix.trim().toUpperCase();
+  return COUNTRIES.find(
+    (candidate) => (candidate.vatPrefix ?? String(candidate.alpha2)) === normalized,
+  );
+}
+
 export function subdivisionsOf(code: string): readonly CountrySubdivision[] {
   return findCountry(code)?.subdivisions ?? [];
 }

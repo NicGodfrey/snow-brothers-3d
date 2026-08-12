@@ -1,5 +1,5 @@
 import { ValidationError } from "./errors.js";
-import { findCountry, vatPrefixFor } from "./country.js";
+import { countryForVatPrefix, findCountry, vatPrefixFor } from "./country.js";
 
 /**
  * Party identifiers: VAT/tax registrations, GS1 location numbers, D-U-N-S,
@@ -400,11 +400,16 @@ export interface PartyIdentifier {
  */
 export function validateIdentifier(identifier: PartyIdentifier): IdentifierVerdict {
   switch (identifier.scheme) {
-    case "vat":
-      if (!identifier.countryCode) {
+    case "vat": {
+      // A VAT number carries its own country prefix, so an integration that
+      // sends "DE136695976" without a separate country field still validates.
+      const country =
+        identifier.countryCode ?? countryForVatPrefix(compact(identifier.value).slice(0, 2))?.alpha2;
+      if (!country) {
         return verdict(false, compact(identifier.value), false, "a VAT number needs a country");
       }
-      return validateVat(identifier.countryCode, identifier.value);
+      return validateVat(String(country), identifier.value);
+    }
     case "tax":
       if (!identifier.countryCode) {
         return verdict(false, compact(identifier.value), false, "a tax id needs a country");

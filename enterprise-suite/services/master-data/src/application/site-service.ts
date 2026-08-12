@@ -210,11 +210,14 @@ export class SiteService {
   ): Promise<readonly NearbySite[]> {
     const radiusKm = options.radiusKm ?? 100;
     const limit = options.limit ?? 10;
+    // Routing cares where the goods go today, so an announced relocation that
+    // has not taken effect yet must not move a site on the map.
+    const now = this.clock.now();
     return (await this.sites.all(ctx.tenantId))
       .filter((site) => site.active)
       .filter((site) => (options.role ? site.hasRole(options.role) : true))
       .flatMap((site) => {
-        const coordinates = site.coordinates;
+        const coordinates = site.addressAt(now).coordinates;
         if (!coordinates) return [];
         const distanceKm = Math.round(haversineKm(point, coordinates) * 1000) / 1000;
         return distanceKm <= radiusKm ? [{ site, distanceKm }] : [];

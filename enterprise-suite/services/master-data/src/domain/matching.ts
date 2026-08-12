@@ -214,12 +214,6 @@ export function scoreMatch(
     a.tradingName ? nameSimilarity(a.tradingName, b.legalName) : 0,
     b.tradingName ? nameSimilarity(a.legalName, b.tradingName) : 0,
   );
-  signals.push({
-    kind: "name",
-    weight: 0.5,
-    contribution: nameScore * 0.5,
-    detail: `name similarity ${nameScore.toFixed(3)}`,
-  });
 
   let addressScore = 0;
   let addressDetail = "no address to compare";
@@ -244,6 +238,25 @@ export function scoreMatch(
             : "different locality";
     }
   }
+  // The same name at the same doorstep is decisive on its own; waiting for a
+  // shared email domain to cross the threshold would leave the clearest kind
+  // of duplicate sitting in a review queue.
+  if (nameScore === 1 && addressScore === 1) {
+    signals.push({
+      kind: "name",
+      weight: 1,
+      contribution: 1,
+      detail: "identical name at an identical address",
+    });
+    return { score: 1, decision: "duplicate", signals };
+  }
+
+  signals.push({
+    kind: "name",
+    weight: 0.5,
+    contribution: nameScore * 0.5,
+    detail: `name similarity ${nameScore.toFixed(3)}`,
+  });
   signals.push({
     kind: "address",
     weight: 0.35,

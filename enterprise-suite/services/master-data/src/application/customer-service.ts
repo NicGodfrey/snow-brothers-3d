@@ -106,9 +106,7 @@ export class CustomerService {
     const currency = String(requireCurrency(command.currency ?? "USD").code);
     await this.assertCurrencyUsable(ctx, currency);
 
-    const number = command.number
-      ? command.number.trim().toUpperCase()
-      : formatCustomerNumber(await this.customers.nextSequence(ctx.tenantId));
+    const number = command.number ? command.number.trim().toUpperCase() : await this.mintNumber(ctx);
     if (await this.customers.byNumber(ctx.tenantId, number)) {
       throw new ConflictError(`Customer number "${number}" already exists`);
     }
@@ -474,6 +472,19 @@ export class CustomerService {
       movedContacts: plan.contactsToMove.length,
       renamedSiteCodes,
     };
+  }
+
+  /**
+   * Mints the next free number. Migrated records keep their legacy numbers, so
+   * the sequence can land on one that is already taken; skipping those is
+   * better than failing a create that never asked for a specific number.
+   */
+  private async mintNumber(ctx: TenantContext): Promise<string> {
+    for (let attempt = 0; attempt < 10_000; attempt += 1) {
+      const candidate = formatCustomerNumber(await this.customers.nextSequence(ctx.tenantId));
+      if (!(await this.customers.byNumber(ctx.tenantId, candidate))) return candidate;
+    }
+    throw new ConflictError("Exhausted the customer number sequence without finding a free number");
   }
 
   /**
