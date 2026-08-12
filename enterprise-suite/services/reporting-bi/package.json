@@ -1,0 +1,29 @@
+{
+  "name": "@enterprise-suite/reporting-bi",
+  "version": "0.1.0",
+  "description": "Reporting & BI: metric definitions, cubes and dimensions, fact ingest from domain events, KPI dashboards, CSV export jobs",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "typecheck": "tsc -b tsconfig.json && tsc -p tsconfig.typecheck.json",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "lint": "npm run typecheck",
+    "start": "node --import tsx src/http/main.ts",
+    "dev": "tsx src/http/main.ts"
+  },
+  "dependencies": {
+    "@enterprise-suite/shared-kernel": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2"
+  }
+}
