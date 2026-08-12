@@ -146,7 +146,11 @@ export interface EnrollmentFilter {
 export interface EnrollmentRepository {
   byId(tenantId: TenantId, id: Ulid): Promise<Enrollment | undefined>;
   byUser(tenantId: TenantId, portalUserId: Ulid): Promise<readonly Enrollment[]>;
-  /** Any non-withdrawn enrollment of that user in that course. */
+  /**
+   * The still-open enrollment of that user in that course, if any. Completed
+   * and withdrawn enrollments do not count: retaking a passed course is how
+   * recertification works.
+   */
   activeForUserAndCourse(
     tenantId: TenantId,
     portalUserId: Ulid,

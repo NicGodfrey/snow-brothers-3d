@@ -76,10 +76,11 @@ CREATE TABLE prmc_enrollments (
     CHECK (status <> 'completed' OR (completed_at IS NOT NULL AND best_score >= passing_score)),
     CHECK (status <> 'withdrawn' OR withdrawn_reason IS NOT NULL)
 );
--- One live enrollment per person per course; withdrawing frees the slot.
-CREATE UNIQUE INDEX prmc_enrollments_active_idx
+-- One open enrollment per person per course. Completed and withdrawn rows do
+-- not block a retake, which is how recertification works.
+CREATE UNIQUE INDEX prmc_enrollments_open_idx
     ON prmc_enrollments (tenant_id, portal_user_id, course_code)
-    WHERE status <> 'withdrawn';
+    WHERE status IN ('enrolled', 'in_progress', 'failed');
 CREATE INDEX prmc_enrollments_partner_idx ON prmc_enrollments (tenant_id, partner_id, status);
 
 CREATE TABLE prmc_enrollment_attempts (
