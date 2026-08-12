@@ -2,6 +2,7 @@
 /**
  * Boots the whole Enterprise Suite as one system:
  *   - 18 domain services on ports 4101–4118
+ *   - outbox-relay on 4120 (drains service outboxes into integration-hub)
  *   - api-gateway on 4100 (ASSUME_DEPLOYED)
  *   - admin-console on 4119
  *   - web-portal on 4300
@@ -23,6 +24,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const MANIFEST = JSON.parse(readFileSync(join(ROOT, "scripts/suite-manifest.json"), "utf8"));
 const LOG_DIR = join(ROOT, ".suite-logs");
+/** Shell bind host; set SUITE_BIND_HOST=0.0.0.0 inside containers. */
+const BIND_HOST = process.env.SUITE_BIND_HOST ?? "127.0.0.1";
 const READY_TIMEOUT_MS = Number(process.env.SUITE_READY_TIMEOUT_MS ?? 120_000);
 const SHUTDOWN_GRACE_MS = 3_000;
 const children = [];
@@ -291,8 +294,8 @@ function startShell() {
     }
     shutdown(1);
   });
-  server.listen(MANIFEST.shellPort, "127.0.0.1", () => {
-    log(`shell http://127.0.0.1:${MANIFEST.shellPort}/`);
+  server.listen(MANIFEST.shellPort, BIND_HOST, () => {
+    log(`shell http://${BIND_HOST}:${MANIFEST.shellPort}/`);
   });
   return server;
 }
