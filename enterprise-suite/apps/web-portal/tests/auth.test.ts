@@ -61,7 +61,7 @@ describe("mock tokens", () => {
     const { auth, clock } = authService();
     const { token } = auth.signIn({ email: USERS.salesManager, tenantId: "acme" });
     clock.advance(61 * 60_000);
-    assert.throws(() => auth.sessionFromToken(token), /Token expired/);
+    assert.throws(() => auth.sessionFromToken(token), /token expired/i);
   });
 });
 

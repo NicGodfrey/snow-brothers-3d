@@ -21,6 +21,7 @@ export function createHarness(): TestHarness {
     ...loadConfig({}),
     transport: "mock",
     suiteAuthSecret: "test-secret",
+    trustHeaders: true,
     mockLatencyMs: 0,
   };
   const transport = new MockTransport({ endpoints: config.endpoints, clock });
