@@ -93,7 +93,7 @@ export class ConflictService {
       stage: registration.stage,
       estimatedValue: registration.estimatedValue,
       protection: protection ? { startsAt: protection.startsAt, endsAt: protection.endsAt } : undefined,
-      lastActivityAt: registration.updatedAt,
+      lastActivityAt: registration.lastActivityAt,
       quoteCount: registration.quotes.length,
       orderCount: registration.orders.length,
     };

@@ -92,13 +92,13 @@ export class AnalyticsService {
       source: registration.source,
       customerKey: registration.customerKey,
       productLines: registration.productLines,
-      createdAt: registration.createdAt,
+      createdAt: registration.openedAt,
       submittedAt: registration.submittedAt,
       approvedAt: registration.approval?.at,
       closedAt: registration.closure?.at,
       closedValue: registration.closure?.value,
       protectionEndsAt: registration.protection?.endsAt,
-      lastActivityAt: registration.updatedAt,
+      lastActivityAt: registration.lastActivityAt,
       quoteCount: registration.quotes.length,
       orderCount: registration.orders.length,
     };
@@ -148,7 +148,7 @@ export class AnalyticsService {
     };
 
     const registrations = (await this.registrations.all(ctx.tenantId)).filter(
-      (r) => (!query.partnerId || r.partnerId === query.partnerId) && (!query.from && !query.to ? true : inRange(r.submittedAt ?? r.createdAt)),
+      (r) => (!query.partnerId || r.partnerId === query.partnerId) && (!query.from && !query.to ? true : inRange(r.submittedAt ?? r.openedAt)),
     );
     const referrals = (await this.referrals.all(ctx.tenantId)).filter(
       (r) => (!query.partnerId || r.partnerId === query.partnerId) && (!query.from && !query.to ? true : inRange(r.submittedAt)),

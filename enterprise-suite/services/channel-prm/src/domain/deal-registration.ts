@@ -56,6 +56,9 @@ import {
  * exclusivity it granted.
  */
 
+/** Timeline actor for transitions no human asked for (sweeps, document links). */
+const SYSTEM_ACTOR = "system" as UserId;
+
 export type RegistrationStatus =
   | "draft"
   | "submitted"
@@ -380,6 +383,24 @@ export class DealRegistration extends AggregateRoot<DealRegistrationProps> {
   get expiryWarnedAt(): IsoDateTime | undefined {
     return this.props.expiryWarnedAt;
   }
+  /**
+   * When the partner opened the registration, on the business clock. The
+   * entity's `createdAt` is stamped from wall time by the shared kernel, which
+   * is the wrong basis for cohorts and cycle times.
+   */
+  get openedAt(): IsoDateTime {
+    return this.props.timeline[0]?.at ?? this.createdAt;
+  }
+  /**
+   * Last time an actor did something to the deal, on the business clock. Aging
+   * and stall reports measure silence from here.
+   */
+  get lastActivityAt(): IsoDateTime {
+    return this.props.timeline.reduce<IsoDateTime>(
+      (latest, entry) => (Date.parse(entry.at) > Date.parse(latest) ? entry.at : latest),
+      this.openedAt,
+    );
+  }
 
   /** True while the registration holds exclusivity at `at`. */
   isProtectedAt(at: IsoDateTime): boolean {
@@ -394,7 +415,7 @@ export class DealRegistration extends AggregateRoot<DealRegistrationProps> {
 
   /** Days from submission to close; the channel team's cycle-time metric. */
   cycleDays(): number | undefined {
-    const start = this.props.submittedAt ?? this.createdAt;
+    const start = this.props.submittedAt ?? this.openedAt;
     const end = this.props.closure?.at;
     if (!end) return undefined;
     return Math.max(0, Math.round((Date.parse(end) - Date.parse(start)) / 86_400_000));
@@ -740,7 +761,7 @@ export class DealRegistration extends AggregateRoot<DealRegistrationProps> {
     if (!hasLapsed(this.props.protection, at)) return false;
     this.props.status = "expired";
     this.props.expiredAt = at;
-    this.log(at, "system" as UserId, "expired");
+    this.log(at, SYSTEM_ACTOR, "expired");
     this.raise(
       envelope({
         eventType: ChannelEventTypes.DealRegistrationExpired,
@@ -839,6 +860,7 @@ export class DealRegistration extends AggregateRoot<DealRegistrationProps> {
     }
     if (this.props.quotes.some((q) => q.id === link.id)) return;
     this.props.quotes.push(link);
+    this.log(link.linkedAt, SYSTEM_ACTOR, "quote-linked", link.number);
     this.raise(
       envelope({
         eventType: ChannelEventTypes.DealRegistrationQuoteLinked,
@@ -858,6 +880,7 @@ export class DealRegistration extends AggregateRoot<DealRegistrationProps> {
     }
     if (this.props.orders.some((o) => o.id === link.id)) return;
     this.props.orders.push(link);
+    this.log(link.linkedAt, SYSTEM_ACTOR, "order-linked", link.number);
     this.raise(
       envelope({
         eventType: ChannelEventTypes.DealRegistrationOrderLinked,
