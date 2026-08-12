@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-08-12T12:52:57.593Z",
+  "generatedAt": "2026-08-12T12:55:58.321Z",
   "root": "/workspace/enterprise-suite/",
   "totals": {
     "modules": 20,
-    "complete": 15,
-    "building": 5,
+    "complete": 18,
+    "building": 2,
     "started": 0,
     "queued": 0,
-    "files": 1242,
-    "lines": 215461,
-    "avgModulePercent": 97,
+    "files": 1248,
+    "lines": 218121,
+    "avgModulePercent": 98,
     "fable5": {
       "total": 10,
       "active_or_done": 10,
@@ -18,7 +18,7 @@
     "opus5fast": {
       "total": 10,
       "active_or_done": 10,
-      "complete": 5
+      "complete": 8
     }
   },
   "sharedKernel": {
@@ -283,8 +283,8 @@
       "model": "claude-opus-5-thinking-high-fast",
       "system": "SRM",
       "label": "SRM Core",
-      "files": 56,
-      "lines": 15706,
+      "files": 58,
+      "lines": 16713,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -308,8 +308,8 @@
       "model": "claude-opus-5-thinking-high-fast",
       "system": "SRM",
       "label": "Procurement SRM",
-      "files": 52,
-      "lines": 16437,
+      "files": 54,
+      "lines": 17337,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -333,8 +333,8 @@
       "model": "claude-opus-5-thinking-high-fast",
       "system": "PRM",
       "label": "PRM Core",
-      "files": 56,
-      "lines": 14653,
+      "files": 57,
+      "lines": 14812,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -343,13 +343,13 @@
         "http": true,
         "migrations": true,
         "tests": true,
-        "readme": false,
+        "readme": true,
         "index": true
       },
-      "score": 8,
+      "score": 9,
       "maxScore": 9,
-      "percent": 89,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "channel-prm",
@@ -384,7 +384,7 @@
       "system": "ERP",
       "label": "Master Data",
       "files": 60,
-      "lines": 15914,
+      "lines": 16179,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -393,13 +393,13 @@
         "http": true,
         "migrations": true,
         "tests": true,
-        "readme": false,
+        "readme": true,
         "index": true
       },
-      "score": 8,
+      "score": 9,
       "maxScore": 9,
-      "percent": 89,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "identity-access",
@@ -458,8 +458,8 @@
       "model": "claude-opus-5-thinking-high-fast",
       "system": "Platform",
       "label": "Reporting BI",
-      "files": 68,
-      "lines": 15588,
+      "files": 69,
+      "lines": 15917,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -468,13 +468,13 @@
         "http": true,
         "migrations": true,
         "tests": true,
-        "readme": false,
+        "readme": true,
         "index": true
       },
-      "score": 8,
+      "score": 9,
       "maxScore": 9,
-      "percent": 89,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "web-portal",
