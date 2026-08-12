@@ -1192,24 +1192,28 @@ export class PurchaseOrder extends AggregateRoot<PurchaseOrderProps> {
       }
       return;
     }
-    if (anyReceipt) {
-      this.props.status = "partially_received";
-      if (previous !== "partially_received") {
-        this.raise(
-          envelope({
-            eventType: ProcurementEvents.PurchaseOrderPartiallyReceived,
-            aggregateType: "PurchaseOrder",
-            aggregateId: this.id,
-            tenantId: this.tenantId,
-            payload: {
-              purchaseOrderId: this.id,
-              orderNumber: this.props.orderNumber,
-              supplierId: this.props.supplierId,
-              outstandingValue: this.outstandingValue,
-            },
-          }),
-        );
-      }
+    if (!anyReceipt) {
+      // Everything received has been reversed or returned: the order goes back
+      // to the state it was in before the first delivery.
+      this.props.status = this.props.acknowledgedAt ? "acknowledged" : "issued";
+      return;
+    }
+    this.props.status = "partially_received";
+    if (previous !== "partially_received") {
+      this.raise(
+        envelope({
+          eventType: ProcurementEvents.PurchaseOrderPartiallyReceived,
+          aggregateType: "PurchaseOrder",
+          aggregateId: this.id,
+          tenantId: this.tenantId,
+          payload: {
+            purchaseOrderId: this.id,
+            orderNumber: this.props.orderNumber,
+            supplierId: this.props.supplierId,
+            outstandingValue: this.outstandingValue,
+          },
+        }),
+      );
     }
   }
 
