@@ -138,6 +138,23 @@ describe("upstream path rewriting", () => {
     assert.equal(resolveUpstreamPath(definition, { productId: "p 1" }, "/api/plm"), "/v2/boms/p%201");
   });
 
+  it("replaces the public prefix with an upstream mount prefix", () => {
+    const definition = route({ id: "sales", pattern: "/api/sales/quotes/:quoteId" });
+    assert.equal(
+      resolveUpstreamPath(definition, { quoteId: "q 1" }, "/api/sales", "/sales"),
+      "/sales/quotes/q%201",
+    );
+    assert.equal(
+      resolveUpstreamPath(
+        route({ id: "admin", pattern: "/api/admin/tenants" }),
+        {},
+        "/api/admin",
+        "/api/admin",
+      ),
+      "/api/admin/tenants",
+    );
+  });
+
   it("rejects rewrites that reference unknown parameters", () => {
     const table = new RouteTable();
     assert.throws(

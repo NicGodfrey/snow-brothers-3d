@@ -1,5 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { DomainError, type TenantContext } from "@enterprise-suite/shared-kernel";
+import {
+  createTenantContext,
+  DomainError,
+  type TenantContext,
+} from "@enterprise-suite/shared-kernel";
 import { extractTenantContext } from "./context.js";
 
 export interface HttpRequest {
@@ -91,7 +95,9 @@ export class Router {
 
     let ctx: TenantContext;
     try {
-      ctx = extractTenantContext(input.headers);
+      ctx = isHealthPath(url.pathname)
+        ? createTenantContext("system", "health-probe", [])
+        : extractTenantContext(input.headers);
     } catch (e) {
       return { status: 401, body: { error: "UNAUTHENTICATED", message: (e as Error).message } };
     }
@@ -141,4 +147,8 @@ export class Router {
       });
     };
   }
+}
+
+function isHealthPath(path: string): boolean {
+  return path === "/health" || path.startsWith("/health/");
 }

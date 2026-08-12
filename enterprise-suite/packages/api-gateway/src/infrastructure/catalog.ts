@@ -4,9 +4,9 @@ import { defineService, ServiceCatalog, type UpstreamService } from "../domain/s
  * Reference upstream catalog for the suite.
  *
  * Ports follow the monorepo convention `41xx`, one per bounded context.
- * `planned: true` marks a context that is designed and routed but not yet
- * deployed: the gateway answers 501 for it and synthesizes its OpenAPI stub
- * instead of pretending the upstream is down.
+ * `planned: true` remains available for future contexts that are designed but
+ * not deployed. Every context below has a runnable process, so all default to
+ * deployed.
  */
 
 export interface CatalogOptions {
@@ -21,6 +21,7 @@ interface ServiceSeed {
   readonly label: string;
   readonly system: UpstreamService["system"];
   readonly prefix: string;
+  readonly upstreamPrefix?: string;
   readonly port: number;
   readonly critical?: boolean;
   readonly planned?: boolean;
@@ -29,9 +30,9 @@ interface ServiceSeed {
 }
 
 const SEEDS: readonly ServiceSeed[] = [
-  { id: "identity-access", label: "Identity & Access", system: "Platform", prefix: "/api/iam", port: 4101, critical: true, planned: true, owner: "platform", tags: ["auth", "tenants"] },
-  { id: "master-data", label: "Master Data", system: "ERP", prefix: "/api/mdm", port: 4102, critical: true, planned: true, owner: "platform", tags: ["reference"] },
-  { id: "sales-erp", label: "Sales ERP", system: "ERP", prefix: "/api/sales", port: 4103, critical: true, owner: "erp-sales", tags: ["quotes", "orders"] },
+  { id: "identity-access", label: "Identity & Access", system: "Platform", prefix: "/api/iam", upstreamPrefix: "/identity", port: 4101, critical: true, owner: "platform", tags: ["auth", "tenants"] },
+  { id: "master-data", label: "Master Data", system: "ERP", prefix: "/api/mdm", port: 4102, critical: true, owner: "platform", tags: ["reference"] },
+  { id: "sales-erp", label: "Sales ERP", system: "ERP", prefix: "/api/sales", upstreamPrefix: "/sales", port: 4103, critical: true, owner: "erp-sales", tags: ["quotes", "orders"] },
   { id: "marketing-erp", label: "Marketing ERP", system: "ERP", prefix: "/api/marketing", port: 4104, owner: "erp-marketing", tags: ["campaigns", "leads"] },
   { id: "product-plm", label: "Product PLM", system: "ERP", prefix: "/api/plm", port: 4105, critical: true, owner: "erp-product", tags: ["catalog", "bom"] },
   { id: "supply-chain", label: "Supply Chain", system: "ERP", prefix: "/api/scm", port: 4106, owner: "erp-supply", tags: ["planning", "mrp"] },
@@ -41,13 +42,13 @@ const SEEDS: readonly ServiceSeed[] = [
   { id: "hcm-erp", label: "HCM", system: "ERP", prefix: "/api/hcm", port: 4110, owner: "erp-people", tags: ["org", "employees"] },
   { id: "quality-qms", label: "Quality QMS", system: "ERP", prefix: "/api/quality", port: 4111, owner: "erp-quality", tags: ["ncr", "capa"] },
   { id: "logistics-tms", label: "Logistics TMS", system: "ERP", prefix: "/api/logistics", port: 4112, owner: "erp-logistics", tags: ["shipments"] },
-  { id: "srm-core", label: "SRM Core", system: "SRM", prefix: "/api/srm", port: 4113, planned: true, owner: "srm", tags: ["suppliers"] },
-  { id: "procurement-srm", label: "Procurement", system: "SRM", prefix: "/api/procurement", port: 4114, planned: true, owner: "srm", tags: ["requisitions", "po"] },
-  { id: "prm-core", label: "PRM Core", system: "PRM", prefix: "/api/prm", port: 4115, planned: true, owner: "prm", tags: ["partners"] },
-  { id: "channel-prm", label: "Channel PRM", system: "PRM", prefix: "/api/channel", port: 4116, planned: true, owner: "prm", tags: ["deal-reg"] },
-  { id: "integration-hub", label: "Integration Hub", system: "Platform", prefix: "/api/integration", port: 4117, planned: true, owner: "platform", tags: ["events", "outbox"] },
-  { id: "reporting-bi", label: "Reporting BI", system: "Platform", prefix: "/api/reporting", port: 4118, planned: true, owner: "platform", tags: ["metrics"] },
-  { id: "admin-console", label: "Admin Console", system: "Apps", prefix: "/api/admin", port: 4119, critical: true, owner: "platform", tags: ["tenants", "config"] },
+  { id: "srm-core", label: "SRM Core", system: "SRM", prefix: "/api/srm", port: 4113, owner: "srm", tags: ["suppliers"] },
+  { id: "procurement-srm", label: "Procurement", system: "SRM", prefix: "/api/procurement", port: 4114, owner: "srm", tags: ["requisitions", "po"] },
+  { id: "prm-core", label: "PRM Core", system: "PRM", prefix: "/api/prm", port: 4115, owner: "prm", tags: ["partners"] },
+  { id: "channel-prm", label: "Channel PRM", system: "PRM", prefix: "/api/channel", port: 4116, owner: "prm", tags: ["deal-reg"] },
+  { id: "integration-hub", label: "Integration Hub", system: "Platform", prefix: "/api/integration", port: 4117, owner: "platform", tags: ["events", "outbox"] },
+  { id: "reporting-bi", label: "Reporting BI", system: "Platform", prefix: "/api/reporting", port: 4118, owner: "platform", tags: ["metrics"] },
+  { id: "admin-console", label: "Admin Console", system: "Apps", prefix: "/api/admin", upstreamPrefix: "/api/admin", port: 4119, critical: true, owner: "platform", tags: ["tenants", "config"] },
 ];
 
 export function buildServiceCatalog(options: CatalogOptions = {}): ServiceCatalog {
@@ -58,6 +59,7 @@ export function buildServiceCatalog(options: CatalogOptions = {}): ServiceCatalo
       label: seed.label,
       system: seed.system,
       prefix: seed.prefix,
+      upstreamPrefix: seed.upstreamPrefix,
       baseUrl: template.replace("{port}", String(seed.port)),
       critical: seed.critical ?? false,
       planned: options.assumeDeployed ? false : seed.planned,

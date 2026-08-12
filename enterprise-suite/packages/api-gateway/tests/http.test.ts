@@ -134,6 +134,21 @@ describe("operational endpoints", () => {
     const routes = await call("GET", "/__gateway/routes", { tenant: null, user: null });
     assert.equal(routes.body.count, container.routes.size);
     assert.deepEqual(routes.body.findings, []);
+    for (const [method, pattern] of [
+      ["POST", "/api/procurement/requisitions/:requisitionId/submit"],
+      ["GET", "/api/procurement/approval-requests/inbox"],
+      ["POST", "/api/procurement/receipts/:receiptId/post"],
+      ["POST", "/api/procurement/invoices/:invoiceId/approve-for-payment"],
+      ["POST", "/api/prm/mdf/requests/:requestId/approve"],
+    ]) {
+      assert.ok(
+        routes.body.routes.some(
+          (route: { method: string; pattern: string }) =>
+            route.method === method && route.pattern === pattern,
+        ),
+        `${method} ${pattern} is routed`,
+      );
+    }
 
     const filtered = await call("GET", "/__gateway/routes?upstream=admin-console", { tenant: null, user: null });
     assert.ok(filtered.body.count > 0);
@@ -141,6 +156,15 @@ describe("operational endpoints", () => {
 
     const services = await call("GET", "/__gateway/services", { tenant: null, user: null });
     assert.equal(services.body.count, container.catalog.size);
+    assert.ok(
+      buildServiceCatalog().list().every((service) => service.planned !== true),
+      "runnable suite services default to deployed without ASSUME_DEPLOYED",
+    );
+    assert.equal(
+      services.body.services.find((service: { id: string }) => service.id === "sales-erp")
+        .upstreamPrefix,
+      "/sales",
+    );
   });
 });
 
@@ -188,16 +212,48 @@ describe("proxying", () => {
     assert.equal(response.headers.get("x-gateway-upstream") ?? forwarded[0]?.service.id, "product-plm");
   });
 
+  it("honours each upstream's real mount path", async () => {
+    const cases: Array<[string, string, string, string]> = [
+      ["GET", "/api/sales/quotes", "sales-erp", "http://127.0.0.1:4103/sales/quotes"],
+      ["GET", "/api/admin/tenants", "admin-console", "http://127.0.0.1:4119/api/admin/tenants"],
+      ["GET", "/api/iam/me", "identity-access", "http://127.0.0.1:4101/identity/me"],
+      ["POST", "/api/reporting/query", "reporting-bi", "http://127.0.0.1:4118/query"],
+      ["GET", "/api/srm/suppliers", "srm-core", "http://127.0.0.1:4113/suppliers"],
+      ["GET", "/api/procurement/requisitions", "procurement-srm", "http://127.0.0.1:4114/requisitions"],
+      ["GET", "/api/prm/partners", "prm-core", "http://127.0.0.1:4115/partners"],
+      ["GET", "/api/integration/webhooks", "integration-hub", "http://127.0.0.1:4117/webhooks"],
+    ];
+
+    for (const [method, path, upstream, targetUrl] of cases) {
+      const response = await call(method, path, {
+        body: method === "POST" ? {} : undefined,
+      });
+      assert.equal(response.status, 200, `${method} ${path}`);
+      assert.equal(response.body.upstream, upstream);
+      assert.equal(response.body.echo, targetUrl);
+    }
+  });
+
+  it("proxies identity and reporting health without tenant headers", async () => {
+    const identity = await call("GET", "/api/iam/health", { tenant: null, user: null });
+    assert.equal(identity.status, 200);
+    assert.equal(identity.body.echo, "http://127.0.0.1:4101/health");
+
+    const reporting = await call("GET", "/api/reporting/health", { tenant: null, user: null });
+    assert.equal(reporting.status, 200);
+    assert.equal(reporting.body.echo, "http://127.0.0.1:4118/health");
+  });
+
   it("enforces route roles before touching the upstream", async () => {
     forwarded.length = 0;
-    const denied = await call("POST", "/api/finance/periods/p_2026_01/close", {
+    const denied = await call("POST", "/api/finance/periods/p_2026_01/close/begin", {
       roles: "accountant",
       body: {},
     });
     assert.equal(denied.status, 403);
     assert.equal(forwarded.length, 0);
 
-    const allowed = await call("POST", "/api/finance/periods/p_2026_01/close", {
+    const allowed = await call("POST", "/api/finance/periods/p_2026_01/close/begin", {
       roles: "controller",
       body: {},
     });

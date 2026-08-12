@@ -10,6 +10,11 @@ export interface UpstreamService {
   readonly baseUrl: string;
   /** Public path prefix owned by the service, e.g. `/api/plm`. */
   readonly prefix: string;
+  /**
+   * Prefix expected by the upstream after the public prefix is removed.
+   * Most services mount at `/`; prefixed services such as sales use `/sales`.
+   */
+  readonly upstreamPrefix: string;
   readonly version: string;
   /** Readiness of a critical service gates the gateway's own readiness. */
   readonly critical: boolean;
@@ -23,11 +28,15 @@ export interface UpstreamService {
 }
 
 export interface UpstreamServiceInput
-  extends Omit<UpstreamService, "healthPath" | "readyPath" | "openapiPath" | "critical" | "version"> {
+  extends Omit<
+    UpstreamService,
+    "healthPath" | "readyPath" | "openapiPath" | "critical" | "upstreamPrefix" | "version"
+  > {
   readonly healthPath?: string;
   readonly readyPath?: string;
   readonly openapiPath?: string;
   readonly critical?: boolean;
+  readonly upstreamPrefix?: string;
   readonly version?: string;
 }
 
@@ -43,6 +52,15 @@ export function defineService(input: UpstreamServiceInput): UpstreamService {
   if (input.prefix.endsWith("/")) {
     throw ValidationError.single("prefix", "must not end with a slash");
   }
+  if (input.upstreamPrefix && !input.upstreamPrefix.startsWith("/")) {
+    throw ValidationError.single(
+      "upstreamPrefix",
+      `must start with "/" (got "${input.upstreamPrefix}")`,
+    );
+  }
+  if (input.upstreamPrefix?.endsWith("/")) {
+    throw ValidationError.single("upstreamPrefix", "must not end with a slash");
+  }
   try {
     // eslint-disable-next-line no-new
     new URL(input.baseUrl);
@@ -53,6 +71,7 @@ export function defineService(input: UpstreamServiceInput): UpstreamService {
     ...input,
     version: input.version ?? "0.1.0",
     critical: input.critical ?? false,
+    upstreamPrefix: input.upstreamPrefix ?? "",
     healthPath: input.healthPath ?? "/health",
     readyPath: input.readyPath ?? "/health",
     openapiPath: input.openapiPath ?? "/openapi.json",

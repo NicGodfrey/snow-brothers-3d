@@ -62,6 +62,8 @@ export function buildGatewayRouter(
           "/openapi.json",
           "/openapi/report",
           "/__gateway/*",
+          "/api/iam/health",
+          "/api/reporting/health",
         ],
       }),
     );

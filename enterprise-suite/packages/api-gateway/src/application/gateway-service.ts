@@ -172,7 +172,12 @@ export class GatewayService {
       };
     }
 
-    const upstreamPath = resolveUpstreamPath(route, params, service.prefix);
+    const upstreamPath = resolveUpstreamPath(
+      route,
+      params,
+      service.prefix,
+      service.upstreamPrefix,
+    );
     const targetUrl = `${service.baseUrl.replace(/\/$/, "")}${upstreamPath}${
       request.query ? `?${request.query}` : ""
     }`;

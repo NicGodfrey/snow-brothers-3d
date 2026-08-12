@@ -96,7 +96,9 @@ export class Router {
           });
           return;
         }
-        const ctx = contextFromHeaders(req);
+        const ctx = isHealthPath(url.pathname)
+          ? createTenantContext("system", "health-probe", [])
+          : contextFromHeaders(req);
         const body = await readJsonBody(req);
         const result = await matchResult.handler({
           method: req.method ?? "GET",
@@ -116,6 +118,10 @@ export class Router {
       }
     };
   }
+}
+
+function isHealthPath(path: string): boolean {
+  return path === "/health" || path.startsWith("/health/");
 }
 
 function isHandlerResult(value: unknown): value is HandlerResult {

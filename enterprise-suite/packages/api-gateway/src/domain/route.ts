@@ -221,21 +221,28 @@ export function compareSpecificity(a: CompiledPattern, b: CompiledPattern): numb
 }
 
 /**
- * Resolves the upstream path for a match. With no `rewrite` the service prefix
- * is stripped, which is the common `/api/<prefix>/...` → `/...` case.
+ * Resolves the upstream path for a match. With no `rewrite` the public service
+ * prefix is stripped and the upstream's own mount prefix is added.
  */
 export function resolveUpstreamPath(
   route: RouteDefinition,
   params: Readonly<Record<string, string>>,
   prefix?: string,
+  upstreamPrefix?: string,
 ): string {
   if (route.rewrite) return applyTemplate(route.rewrite, params);
   const path = substituteParams(route.pattern, params);
-  if (!prefix) return path;
-  const normalized = prefix.startsWith("/") ? prefix : `/${prefix}`;
-  if (path === normalized) return "/";
-  if (path.startsWith(`${normalized}/`)) return path.slice(normalized.length);
-  return path;
+  let stripped = path;
+  if (prefix) {
+    const normalized = prefix.startsWith("/") ? prefix : `/${prefix}`;
+    if (path === normalized) stripped = "/";
+    else if (path.startsWith(`${normalized}/`)) stripped = path.slice(normalized.length);
+  }
+  if (!upstreamPrefix) return stripped;
+  const normalizedUpstream = upstreamPrefix.startsWith("/")
+    ? upstreamPrefix
+    : `/${upstreamPrefix}`;
+  return stripped === "/" ? normalizedUpstream : `${normalizedUpstream}${stripped}`;
 }
 
 function substituteParams(pattern: string, params: Readonly<Record<string, string>>): string {
