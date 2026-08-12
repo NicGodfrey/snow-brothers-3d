@@ -48,18 +48,42 @@ enterprise-suite/
 
 ## Product runbook (local / private pilot)
 
+**Scope honesty, up front:** this suite is built for a local or private-network
+pilot. Persistence is in-memory (plus optional JSON-file snapshots) unless you
+add real database adapters. Tenant isolation, token signing, and rate limits
+exist but have not been hardened, audited, or load-tested for public
+multi-tenant SaaS. Do not expose these ports to the internet.
+
+### Run natively (Node 20+)
+
 ```bash
 cd enterprise-suite
-npm ci          # or npm install
-npm run suite:start
-# optional: npm run suite:smoke
+npm ci                 # reproducible install from the lockfile
+npm run suite:start    # boots all services; declares READY only when 100%
+                       # of critical processes answer HTTP 200 on /health
+npm run suite:smoke    # e2e smoke: shell, gateway health/ready, portal,
+                       # admin, and gateway data routes; exits non-zero on failure
 ```
 
-Docker:
+`suite:start` fails fast if port 4000 is already taken (no orphaned children),
+and keeps the shell up for diagnosis if readiness times out
+(`SUITE_READY_TIMEOUT_MS`, default 120000). Per-process logs land in
+`.suite-logs/`; the readiness verdict is visible on the shell page,
+`/api/status`, and `docs/suite-runtime.json`.
+
+### Run with Docker
 
 ```bash
+cd enterprise-suite
 docker compose up --build
 ```
+
+One `suite` container runs every process and publishes 4000 (shell),
+4100 (gateway), 4119 (admin), 4300 (portal). The compose healthcheck flips to
+`healthy` only after the suite declares READY. Smoke-test it from the host
+with `npm run suite:smoke`.
+
+### Surfaces
 
 | Surface | URL |
 |---------|-----|
@@ -70,15 +94,24 @@ docker compose up --build
 | OpenAPI | http://127.0.0.1:4100/openapi.json |
 
 Portal sign-in uses directory emails (e.g. `jordan.blake@acme.test`) on tenant **demo**.  
-`SUITE_AUTH_SECRET` signs suite tokens; local demo default is only for private use.
+`SUITE_AUTH_SECRET` signs suite tokens; the baked-in local demo default is only
+for private use — set your own secret for any shared deployment.
 
-Export:
+### Windows notes
+
+- Prefer **WSL2 or Docker Desktop** on Windows: the launcher relies on POSIX
+  signal semantics (SIGTERM/SIGINT) for clean child shutdown, which Node only
+  emulates on native Windows.
+- If running natively anyway: use PowerShell or cmd (`npm run suite:start`
+  works as-is — the launcher spawns Node directly, no shell scripts), stop the
+  suite with a single Ctrl+C, and check `.suite-logs\` if a port conflict is
+  reported (default ports: 4000–4300 range, see `scripts/suite-manifest.json`).
+
+Export a portable archive:
 
 ```bash
 npm run suite:export
 ```
-
-Scope honesty: in-memory persistence unless you add DB adapters; treat as private pilot, not public SaaS.
 
 ## Build progress dashboard
 

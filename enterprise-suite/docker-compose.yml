@@ -1,23 +1,35 @@
+# Enterprise Suite — one-container pilot deployment.
+#
+#   docker compose up --build
+#
+# Surfaces once healthy:
+#   http://localhost:4000   suite shell (process table + readiness)
+#   http://localhost:4100   API gateway (/health, /health/ready, /openapi.json)
+#   http://localhost:4119   admin console
+#   http://localhost:4300   web portal
+#
+# Smoke-test from the host:  npm run suite:smoke
 services:
   suite:
     build: .
+    container_name: enterprise-suite
     ports:
-      - "4000:4000"
-      - "4100:4100"
-      - "4119:4119"
-      - "4300:4300"
+      - "4000:4000"   # suite shell
+      - "4100:4100"   # api gateway
+      - "4119:4119"   # admin console
+      - "4300:4300"   # web portal
     environment:
-      ASSUME_DEPLOYED: "true"
-      SUITE_TRUST_HEADERS: "true"
-      SUITE_AUTH_SECRET: local-demo-only-suite-auth-secret
-      PORTAL_TRANSPORT: http
-      PORTAL_GATEWAY_URL: http://127.0.0.1:4100
-      PORTAL_DEFAULT_TENANT: demo
-      SEED: "1"
-    # Suite binds many loopback ports inside the container; host maps the UX surfaces.
+      SEED: "1"                  # seed the "demo" tenant on boot
+      SUITE_BIND_HOST: 0.0.0.0   # shell must bind all interfaces in a container
+      SUITE_READY_TIMEOUT_MS: "180000"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 10s
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4000/api/status').then(r=>r.json()).then(s=>process.exit(s.ready?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
       timeout: 5s
-      retries: 30
-      start_period: 60s
+      start_period: 90s
+      retries: 5
+    restart: unless-stopped

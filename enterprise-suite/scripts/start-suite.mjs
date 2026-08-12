@@ -15,7 +15,7 @@
  * (EADDRINUSE) the launcher tears every child down and exits non-zero instead
  * of orphaning them.
  */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:http";
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -60,11 +60,14 @@ function startProcess(proc) {
     ...process.env,
     PORT: String(proc.port),
     SEED: process.env.SEED ?? "1",
+    TENANT: process.env.TENANT ?? "demo",
     ASSUME_DEPLOYED: "true",
     SUITE_AUTH_SECRET: process.env.SUITE_AUTH_SECRET ?? LOCAL_DEMO_SUITE_AUTH_SECRET,
     // Temporary backwards compatibility for local services that still call
     // each other with tenant headers. Tokens remain authoritative when sent.
     SUITE_TRUST_HEADERS: process.env.SUITE_TRUST_HEADERS ?? "true",
+    // JSON file persistence for srm-core (and opt-in domains). Survives restart.
+    PERSISTENCE_DIR: process.env.PERSISTENCE_DIR ?? join(ROOT, ".data"),
     ...(proc.env ?? {}),
   };
 
@@ -342,12 +345,61 @@ process.on("unhandledRejection", (err) => {
   shutdown(1);
 });
 
+/**
+ * Workspace packages resolve to dist/. Stale incremental builds (or a force-
+ * tracked old dist) omit named exports like signSuiteToken and crash the
+ * gateway/portal at import time. Rebuild the kernel every suite:start.
+ */
+function ensureSharedKernelBuilt() {
+  const marker = join(ROOT, "packages/shared-kernel/dist/auth/suite-token.js");
+  log("building @enterprise-suite/shared-kernel …");
+  const result = spawnSync("npm", ["run", "build", "-w", "@enterprise-suite/shared-kernel"], {
+    cwd: ROOT,
+    env: process.env,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    log(`FATAL: shared-kernel build failed:\n${result.stdout ?? ""}\n${result.stderr ?? ""}`);
+    process.exit(1);
+  }
+  if (!existsSync(marker)) {
+    log("FATAL: shared-kernel build did not emit dist/auth/suite-token.js");
+    process.exit(1);
+  }
+  log("shared-kernel build complete");
+}
+
+ensureSharedKernelBuilt();
+
+/** Best-effort free of suite ports so a previous crashed child cannot block boot. */
+function freeSuitePorts(procs) {
+  const ports = [
+    MANIFEST.shellPort,
+    MANIFEST.gatewayPort,
+    MANIFEST.portalPort,
+    MANIFEST.adminPort,
+    ...procs.map((p) => p.port).filter(Boolean),
+  ];
+  const unique = [...new Set(ports)];
+  for (const port of unique) {
+    try {
+      spawnSync("fuser", ["-k", `${port}/tcp`], { stdio: "ignore" });
+    } catch {
+      // fuser may be unavailable; bind errors still surface later.
+    }
+  }
+}
+
 const all = [...MANIFEST.services, ...MANIFEST.apps];
+freeSuitePorts(all);
+// Give the kernel a moment to release sockets after fuser -k.
+spawnSync("sleep", ["1"]);
 for (const proc of all) startProcess(proc);
 startShell();
 const ready = await waitReady(all);
 
 const exportPath = join(ROOT, "docs/suite-runtime.json");
+mkdirSync(join(ROOT, "docs"), { recursive: true });
 writeFileSync(
   exportPath,
   JSON.stringify(

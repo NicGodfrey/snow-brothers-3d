@@ -100,6 +100,83 @@ const checks = [
       return null;
     },
   },
+  {
+    name: `gateway /api/procurement/requisitions (tenant=${TENANT})`,
+    url: `http://${HOST}:${GATEWAY_PORT}/api/procurement/requisitions`,
+    headers: {
+      ...tenantHeaders,
+      "x-roles": "buyer,procurement-manager,tenant-admin",
+    },
+    validate: async (res) => {
+      if (res.status !== 200) {
+        const detail = await res.text().catch(() => "");
+        return `expected 200, got ${res.status}${detail ? ` — ${truncate(detail)}` : ""}`;
+      }
+      const body = await res.json().catch(() => null);
+      if (body === null) return "response was not JSON";
+      const items = Array.isArray(body) ? body : body.items ?? body.data ?? body.requisitions;
+      if (!Array.isArray(items)) return `no requisition list (keys: ${Object.keys(body).join(", ")})`;
+      if (items.length === 0) return "requisition list empty — procurement seed tenant mismatch?";
+      return null;
+    },
+  },
+  {
+    name: `gateway /api/sales/orders (tenant=${TENANT})`,
+    url: `http://${HOST}:${GATEWAY_PORT}/api/sales/orders`,
+    headers: {
+      ...tenantHeaders,
+      "x-roles": "sales-rep,sales-manager,tenant-admin",
+    },
+    validate: async (res) => {
+      if (res.status !== 200) {
+        const detail = await res.text().catch(() => "");
+        return `expected 200, got ${res.status}${detail ? ` — ${truncate(detail)}` : ""}`;
+      }
+      const body = await res.json().catch(() => null);
+      if (body === null) return "response was not JSON";
+      const items = Array.isArray(body) ? body : body.items ?? body.data ?? body.orders;
+      if (!Array.isArray(items)) return `no order list (keys: ${Object.keys(body).join(", ")})`;
+      return null;
+    },
+  },
+  {
+    name: "portal sign-in + live SRM suppliers",
+    url: `http://${HOST}:${PORTAL_PORT}/sign-in`,
+    validate: async () => {
+      const signIn = await fetch(`http://${HOST}:${PORTAL_PORT}/sign-in`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({
+          email: "avery.chen@acme.test",
+          tenantId: TENANT,
+        }),
+      });
+      if (signIn.status !== 200) {
+        const detail = await signIn.text().catch(() => "");
+        return `sign-in expected 200, got ${signIn.status}${detail ? ` — ${truncate(detail)}` : ""}`;
+      }
+      const session = await signIn.json();
+      const cookie = signIn.headers.getSetCookie?.()?.[0] ?? signIn.headers.get("set-cookie");
+      if (!cookie) return "sign-in did not set session cookie";
+      const suppliers = await fetch(`http://${HOST}:${PORTAL_PORT}/api/modules/srm/suppliers`, {
+        headers: {
+          accept: "application/json",
+          cookie: cookie.split(";")[0],
+          authorization: `Bearer ${session.token}`,
+        },
+      });
+      if (suppliers.status !== 200) {
+        const detail = await suppliers.text().catch(() => "");
+        return `portal SRM expected 200, got ${suppliers.status}${detail ? ` — ${truncate(detail)}` : ""}`;
+      }
+      const body = await suppliers.json().catch(() => null);
+      if (body === null) return "portal SRM response was not JSON";
+      const items = Array.isArray(body) ? body : body.items ?? body.data ?? body.rows ?? body.suppliers;
+      if (!Array.isArray(items)) return `portal SRM missing list (keys: ${Object.keys(body).join(", ")})`;
+      if (items.length === 0) return "portal SRM supplier list empty — live gateway/tenant mismatch?";
+      return null;
+    },
+  },
 ];
 
 function truncate(s, max = 200) {
