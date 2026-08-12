@@ -172,9 +172,15 @@ describe("money endpoints", () => {
     assert.equal(direct.status, 200);
     assert.equal(direct.body.to.amountMinor, 108_420);
 
-    const triangulated = await get<{ path: readonly unknown[] }>("/fx/resolve?base=GBP&quote=EUR");
+    const triangulated = await get<{ path: string; legs: readonly { base: string; quote: string }[] }>(
+      "/fx/resolve?base=GBP&quote=EUR",
+    );
     assert.equal(triangulated.status, 200);
-    assert.ok(triangulated.body.path.length > 1);
+    assert.equal(triangulated.body.path, "triangulated");
+    assert.deepEqual(
+      triangulated.body.legs.map((leg) => `${leg.base}/${leg.quote}`),
+      ["GBP/USD", "USD/EUR"],
+    );
 
     const unavailable = await get("/fx/resolve?base=GBP&quote=EUR&directOnly=true");
     assert.equal(unavailable.status, 422);
