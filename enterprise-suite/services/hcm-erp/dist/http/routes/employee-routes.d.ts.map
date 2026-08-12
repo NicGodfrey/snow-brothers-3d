@@ -1,1 +1,0 @@
-{"version":3,"file":"employee-routes.d.ts","sourceRoot":"","sources":["../../../src/http/routes/employee-routes.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,iBAAiB,CAAC;AAYjD,OAAO,EAAmB,KAAK,MAAM,EAAE,MAAM,cAAc,CAAC;AAI5D,wBAAgB,sBAAsB,CAAC,MAAM,EAAE,MAAM,EAAE,MAAM,EAAE,SAAS,GAAG,IAAI,CAuG9E"}

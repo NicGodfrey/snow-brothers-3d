@@ -1,19 +1,19 @@
 {
-  "generatedAt": "2026-08-12T11:41:41.278Z",
+  "generatedAt": "2026-08-12T12:02:24.714Z",
   "root": "/workspace/enterprise-suite/",
   "totals": {
     "modules": 20,
-    "complete": 0,
-    "building": 10,
+    "complete": 9,
+    "building": 1,
     "started": 0,
     "queued": 10,
-    "files": 336,
-    "lines": 48083,
-    "avgModulePercent": 27,
+    "files": 604,
+    "lines": 78545,
+    "avgModulePercent": 49,
     "fable5": {
       "total": 10,
       "active_or_done": 10,
-      "complete": 0
+      "complete": 9
     },
     "opus5fast": {
       "total": 10,
@@ -33,23 +33,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Sales ERP",
-      "files": 72,
-      "lines": 5584,
+      "files": 91,
+      "lines": 7313,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
         "http": true,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
+        "migrations": true,
+        "tests": true,
+        "readme": true,
         "index": true
       },
-      "score": 6,
+      "score": 9,
       "maxScore": 9,
-      "percent": 67,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "marketing-erp",
@@ -58,23 +58,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Marketing ERP",
-      "files": 29,
-      "lines": 5379,
+      "files": 74,
+      "lines": 10130,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
-        "infrastructure": false,
-        "http": false,
-        "migrations": false,
+        "infrastructure": true,
+        "http": true,
+        "migrations": true,
         "tests": true,
-        "readme": false,
-        "index": false
+        "readme": true,
+        "index": true
       },
-      "score": 4,
+      "score": 9,
       "maxScore": 9,
-      "percent": 44,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "product-plm",
@@ -83,23 +83,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Product PLM",
-      "files": 23,
-      "lines": 4014,
+      "files": 47,
+      "lines": 7116,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
-        "http": false,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
-        "index": false
+        "http": true,
+        "migrations": true,
+        "tests": true,
+        "readme": true,
+        "index": true
       },
-      "score": 4,
+      "score": 9,
       "maxScore": 9,
-      "percent": 44,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "supply-chain",
@@ -108,23 +108,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Supply Chain",
-      "files": 32,
-      "lines": 3904,
+      "files": 59,
+      "lines": 6032,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
         "http": true,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
-        "index": false
+        "migrations": true,
+        "tests": true,
+        "readme": true,
+        "index": true
       },
-      "score": 5,
+      "score": 9,
       "maxScore": 9,
-      "percent": 56,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "inventory-wms",
@@ -133,23 +133,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Inventory WMS",
-      "files": 29,
-      "lines": 5303,
+      "files": 47,
+      "lines": 7762,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
         "http": true,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
-        "index": false
+        "migrations": true,
+        "tests": true,
+        "readme": true,
+        "index": true
       },
-      "score": 5,
+      "score": 9,
       "maxScore": 9,
-      "percent": 56,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "finance-erp",
@@ -158,23 +158,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Finance ERP",
-      "files": 38,
-      "lines": 4718,
+      "files": 59,
+      "lines": 6895,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
         "http": true,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
+        "migrations": true,
+        "tests": true,
+        "readme": true,
         "index": true
       },
-      "score": 6,
+      "score": 9,
       "maxScore": 9,
-      "percent": 67,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "manufacturing-mes",
@@ -183,23 +183,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Manufacturing MES",
-      "files": 26,
-      "lines": 4611,
+      "files": 54,
+      "lines": 7556,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
         "http": true,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
-        "index": false
+        "migrations": true,
+        "tests": true,
+        "readme": true,
+        "index": true
       },
-      "score": 5,
+      "score": 9,
       "maxScore": 9,
-      "percent": 56,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "hcm-erp",
@@ -208,22 +208,22 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "HCM / HR",
-      "files": 22,
-      "lines": 4940,
+      "files": 56,
+      "lines": 9698,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
-        "infrastructure": false,
-        "http": false,
-        "migrations": false,
+        "infrastructure": true,
+        "http": true,
+        "migrations": true,
         "tests": true,
         "readme": false,
-        "index": false
+        "index": true
       },
-      "score": 4,
+      "score": 8,
       "maxScore": 9,
-      "percent": 44,
+      "percent": 89,
       "status": "building"
     },
     {
@@ -233,23 +233,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Quality QMS",
-      "files": 25,
-      "lines": 4665,
+      "files": 57,
+      "lines": 8525,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
-        "http": false,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
-        "index": false
+        "http": true,
+        "migrations": true,
+        "tests": true,
+        "readme": true,
+        "index": true
       },
-      "score": 4,
+      "score": 9,
       "maxScore": 9,
-      "percent": 44,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "logistics-tms",
@@ -258,23 +258,23 @@
       "model": "claude-fable-5-thinking-xhigh",
       "system": "ERP",
       "label": "Logistics TMS",
-      "files": 28,
-      "lines": 4653,
+      "files": 48,
+      "lines": 7206,
       "checks": {
         "package.json": true,
         "domain": true,
         "application": true,
         "infrastructure": true,
         "http": true,
-        "migrations": false,
-        "tests": false,
-        "readme": false,
-        "index": false
+        "migrations": true,
+        "tests": true,
+        "readme": true,
+        "index": true
       },
-      "score": 5,
+      "score": 9,
       "maxScore": 9,
-      "percent": 56,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "srm-core",
