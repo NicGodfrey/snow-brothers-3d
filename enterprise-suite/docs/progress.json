@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-12T12:52:29.503Z",
+  "generatedAt": "2026-08-12T12:52:57.593Z",
   "root": "/workspace/enterprise-suite/",
   "totals": {
     "modules": 20,
@@ -8,7 +8,7 @@
     "started": 0,
     "queued": 0,
     "files": 1242,
-    "lines": 215445,
+    "lines": 215461,
     "avgModulePercent": 97,
     "fable5": {
       "total": 10,
@@ -334,7 +334,7 @@
       "system": "PRM",
       "label": "PRM Core",
       "files": 56,
-      "lines": 14640,
+      "lines": 14653,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -384,7 +384,7 @@
       "system": "ERP",
       "label": "Master Data",
       "files": 60,
-      "lines": 15911,
+      "lines": 15914,
       "checks": {
         "package.json": true,
         "domain": true,
