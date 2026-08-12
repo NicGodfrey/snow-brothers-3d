@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-08-12T12:59:38.238Z",
+  "generatedAt": "2026-08-12T13:04:44.800Z",
   "root": "/workspace/enterprise-suite/",
   "totals": {
     "modules": 20,
-    "complete": 18,
-    "building": 2,
+    "complete": 19,
+    "building": 1,
     "started": 0,
     "queued": 0,
-    "files": 1254,
-    "lines": 219514,
+    "files": 1263,
+    "lines": 221549,
     "avgModulePercent": 99,
     "fable5": {
       "total": 10,
@@ -18,7 +18,7 @@
     "opus5fast": {
       "total": 10,
       "active_or_done": 10,
-      "complete": 8
+      "complete": 9
     }
   },
   "sharedKernel": {
@@ -283,8 +283,8 @@
       "model": "claude-opus-5-thinking-high-fast",
       "system": "SRM",
       "label": "SRM Core",
-      "files": 59,
-      "lines": 17191,
+      "files": 61,
+      "lines": 18216,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -308,8 +308,8 @@
       "model": "claude-opus-5-thinking-high-fast",
       "system": "SRM",
       "label": "Procurement SRM",
-      "files": 58,
-      "lines": 18105,
+      "files": 65,
+      "lines": 19115,
       "checks": {
         "package.json": true,
         "domain": true,
@@ -318,13 +318,13 @@
         "http": true,
         "migrations": true,
         "tests": true,
-        "readme": false,
+        "readme": true,
         "index": true
       },
-      "score": 8,
+      "score": 9,
       "maxScore": 9,
-      "percent": 89,
-      "status": "building"
+      "percent": 100,
+      "status": "complete"
     },
     {
       "id": "prm-core",
