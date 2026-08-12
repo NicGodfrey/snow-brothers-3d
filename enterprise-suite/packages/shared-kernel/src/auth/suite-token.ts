@@ -67,14 +67,15 @@ function validateClaims(value: unknown): SuiteTokenClaims {
 
   const tenantId = nonEmptyString(value.tenantId);
   const userId = nonEmptyString(value.userId);
-  const roles = Array.isArray(value.roles)
-    ? value.roles.map(nonEmptyString).filter((role): role is string => role !== undefined)
+  const roleValues = Array.isArray(value.roles) ? value.roles : undefined;
+  const roles = roleValues
+    ? roleValues.map(nonEmptyString).filter((role): role is string => role !== undefined)
     : undefined;
   const exp = value.exp;
   const iat = value.iat;
 
   if (!tenantId || !userId) throw invalidToken("Suite token is missing tenantId/userId");
-  if (!roles || roles.length !== value.roles.length) {
+  if (!roles || roles.length !== roleValues?.length) {
     throw invalidToken("Suite token roles must be an array of non-empty strings");
   }
   if (!Number.isSafeInteger(exp) || (exp as number) <= 0) {
