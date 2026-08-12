@@ -174,8 +174,7 @@ export class ContractService {
     const expired: EmploymentContract[] = [];
     for (const contract of this.contracts.listByTenant(tenantId)) {
       if (contract.status !== "active") continue;
-      contract.markExpired(effectiveAsOf);
-      if (contract.status !== "expired") continue;
+      if (!contract.markExpired(effectiveAsOf)) continue;
 
       const position = this.positions.findById(tenantId, contract.positionId);
       if (position && position.status === "filled" && position.currentEmployeeId === contract.employeeId) {

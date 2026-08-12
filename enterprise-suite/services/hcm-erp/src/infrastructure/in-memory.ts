@@ -40,6 +40,7 @@ import type {
   OrgUnitRepository,
   PositionRepository,
   Repository,
+  RequisitionRepository,
   SkillRepository,
 } from "../application/ports.js";
 

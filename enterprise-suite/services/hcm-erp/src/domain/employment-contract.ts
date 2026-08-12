@@ -326,10 +326,13 @@ export class EmploymentContract extends AggregateRoot<EmploymentContractProps> {
     );
   }
 
-  /** Fixed-term contracts pass their end date; called by a scheduled job / service sweep. */
-  markExpired(asOf: IsoDate): void {
-    if (this.props.status !== "active") return;
-    if (!this.props.endDate || compareDates(asOf, this.props.endDate) <= 0) return;
+  /**
+   * Fixed-term contracts pass their end date; called by a scheduled job /
+   * service sweep. Returns true when the contract transitioned to expired.
+   */
+  markExpired(asOf: IsoDate): boolean {
+    if (this.props.status !== "active") return false;
+    if (!this.props.endDate || compareDates(asOf, this.props.endDate) <= 0) return false;
     this.props.status = "expired";
     this.raise(
       envelope({
@@ -340,5 +343,6 @@ export class EmploymentContract extends AggregateRoot<EmploymentContractProps> {
         payload: { employeeId: this.props.employeeId, endDate: this.props.endDate },
       }),
     );
+    return true;
   }
 }

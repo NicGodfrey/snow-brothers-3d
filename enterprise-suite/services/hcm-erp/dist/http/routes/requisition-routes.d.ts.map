@@ -1,0 +1,1 @@
+{"version":3,"file":"requisition-routes.d.ts","sourceRoot":"","sources":["../../../src/http/routes/requisition-routes.ts"],"names":[],"mappings":"AAEA,OAAO,KAAK,EAAE,SAAS,EAAE,MAAM,iBAAiB,CAAC;AAmBjD,OAAO,EAAmB,KAAK,MAAM,EAAE,MAAM,cAAc,CAAC;AAa5D,wBAAgB,yBAAyB,CAAC,MAAM,EAAE,MAAM,EAAE,MAAM,EAAE,SAAS,GAAG,IAAI,CAoHjF"}
