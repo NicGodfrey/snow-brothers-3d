@@ -1,0 +1,37 @@
+{
+  "name": "@enterprise-suite/procurement-srm",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Procurement / supplier relationship management: requisitions, approval chains, RFQ + supplier quotes, purchase orders, goods receipts, three-way match and blanket agreements",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "migrations",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "lint": "npm run typecheck",
+    "dev": "node --import tsx src/http/main.ts"
+  },
+  "dependencies": {
+    "@enterprise-suite/shared-kernel": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
