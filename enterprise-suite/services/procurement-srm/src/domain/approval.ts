@@ -16,6 +16,13 @@ import { ProcurementEvents } from "./events.js";
 
 export type ApprovalRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
 
+export const APPROVAL_REQUEST_STATUSES: readonly ApprovalRequestStatus[] = [
+  "pending",
+  "approved",
+  "rejected",
+  "cancelled",
+];
+
 export type ApprovalStepStatus = "pending" | "approved" | "rejected" | "skipped";
 
 export interface ApprovalStepSpec {

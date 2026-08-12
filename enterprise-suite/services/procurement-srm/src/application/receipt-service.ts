@@ -18,6 +18,13 @@ import {
   type ReceiptRepository,
 } from "./ports.js";
 
+/**
+ * What a caller sends: the unit of measure, item code and description are
+ * copied off the purchase order line when omitted, so a receiving clerk only
+ * has to key a line number and a quantity.
+ */
+export type ReceiptLineRequest = Omit<ReceiptLineInput, "uom"> & { uom?: string };
+
 export interface DraftReceiptInput {
   purchaseOrderId: Ulid;
   receivedBy: Ulid;
@@ -26,7 +33,7 @@ export interface DraftReceiptInput {
   carrier?: string;
   waybillNumber?: string;
   notes?: string;
-  lines?: readonly ReceiptLineInput[];
+  lines?: readonly ReceiptLineRequest[];
 }
 
 /**
@@ -84,7 +91,7 @@ export class ReceiptService {
     return results.sort((a, b) => a.receiptNumber.localeCompare(b.receiptNumber));
   }
 
-  addLine(tenantId: TenantId, receiptId: Ulid, input: ReceiptLineInput): ReceiptLine {
+  addLine(tenantId: TenantId, receiptId: Ulid, input: ReceiptLineRequest): ReceiptLine {
     const receipt = this.get(tenantId, receiptId);
     const order = this.purchaseOrders.get(tenantId, receipt.purchaseOrderId);
     order.lineByNumber(input.purchaseOrderLineNumber);
@@ -241,7 +248,7 @@ export class ReceiptService {
   }
 
   /** Copies item code and description off the order line when omitted. */
-  private withOrderLineDetail(order: PurchaseOrder, input: ReceiptLineInput): ReceiptLineInput {
+  private withOrderLineDetail(order: PurchaseOrder, input: ReceiptLineRequest): ReceiptLineInput {
     const orderLine = order.lineByNumber(input.purchaseOrderLineNumber);
     if (orderLine.status === "cancelled") {
       throw ValidationError.single(
