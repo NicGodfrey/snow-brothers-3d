@@ -46,6 +46,16 @@ enterprise-suite/
 - Shared kernel: Entity, Result, Money, TenantId, EventEnvelope
 - No fake 5M-line padding — depth comes from real domain models, services, APIs, tests, and migrations
 
+## Build progress dashboard
+
+```bash
+cd enterprise-suite
+npm run progress          # refresh docs/progress.json from the filesystem
+npm run progress:serve    # serve docs/ at http://127.0.0.1:8765/progress.html
+```
+
+Open `docs/progress.html` (via the local server) for a live view of the 20 domain modules, Fable5 / Opus5-fast batches, LOC, and completion checks.
+
 ## Quick start
 
 ```bash

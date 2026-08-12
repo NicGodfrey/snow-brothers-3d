@@ -1,0 +1,28 @@
+{
+  "name": "@enterprise-suite/manufacturing-mes",
+  "version": "0.1.0",
+  "description": "Manufacturing Execution System: work centers, routings, work orders, material flows, capacity, scrap/rework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "start": "node --import tsx src/http/server.ts"
+  },
+  "dependencies": {
+    "@enterprise-suite/shared-kernel": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2"
+  }
+}
