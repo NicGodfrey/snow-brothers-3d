@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import type { Ulid } from "@enterprise-suite/shared-kernel";
+import { money, type Ulid } from "@enterprise-suite/shared-kernel";
 import type { DateOnly } from "../src/domain/dates.js";
 import { SrmEventTypes } from "../src/domain/events.js";
 import { deviationFromTarget, escalationFor, evaluateSla, severityFor } from "../src/domain/sla.js";
@@ -71,7 +71,7 @@ describe("SLA arithmetic", () => {
   });
 
   it("scales the credit by severity and caps it at the negotiated liability", () => {
-    const spend = { amountMinor: 1_000_000, currency: "EUR" } as const;
+    const spend = money(1_000_000, "EUR");
     const minor = evaluateSla(OTD_COMMITMENT, 96, { periodSpend: spend });
     assert.equal(minor.severity, "minor");
     assert.equal(minor.credit?.amountMinor, 20_000, "2% of spend at the minor multiplier");
@@ -90,7 +90,7 @@ describe("SLA arithmetic", () => {
 
   it("records a breach without a credit while the grace allowance lasts", () => {
     const commitment = { ...OTD_COMMITMENT, graceBreaches: 2 };
-    const spend = { amountMinor: 1_000_000, currency: "EUR" } as const;
+    const spend = money(1_000_000, "EUR");
     const first = evaluateSla(commitment, 94, { periodSpend: spend, priorBreaches: 0 });
     assert.equal(first.breached, true);
     assert.equal(first.credit, undefined);

@@ -16,7 +16,7 @@ const PASSING: Readonly<Record<SectionCode, number>> = {
   capacity_scalability: 84,
 };
 
-function codes(issues: readonly { code: EligibilityCode }[]): readonly EligibilityCode[] {
+function codes(issues: readonly { code: EligibilityCode }[]): EligibilityCode[] {
   return issues.map((issue) => issue.code);
 }
 
