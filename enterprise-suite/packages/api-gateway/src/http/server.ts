@@ -27,6 +27,10 @@ export interface GatewayServerOptions {
   readonly forwarder?: (decision: ForwardDecision, req: HttpRequest) => Promise<HttpResponse>;
   readonly corsOrigins?: readonly string[];
   readonly exposeRoutes?: boolean;
+  /** Shared HS256 token secret. Required to accept bearer/cookie authentication. */
+  readonly authSecret?: string;
+  /** Development-only fallback for direct service headers. Defaults to false. */
+  readonly trustHeaders?: boolean;
 }
 
 export function buildGatewayRouter(
@@ -48,6 +52,9 @@ export function buildGatewayRouter(
     )
     .use(
       tenantContextMiddleware({
+        authSecret: options.authSecret,
+        trustHeaders: options.trustHeaders,
+        nowMs: () => container.clock.nowMs(),
         anonymousPaths: [
           "/health",
           "/health/*",

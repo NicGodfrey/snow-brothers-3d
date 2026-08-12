@@ -18,6 +18,9 @@ const MANIFEST = JSON.parse(readFileSync(join(ROOT, "scripts/suite-manifest.json
 const LOG_DIR = join(ROOT, ".suite-logs");
 const children = [];
 const status = new Map();
+// Known development key for the one-command local demo only. Deployments must
+// provide a strong SUITE_AUTH_SECRET instead of copying this value.
+const LOCAL_DEMO_SUITE_AUTH_SECRET = "local-demo-only-suite-auth-secret";
 
 mkdirSync(LOG_DIR, { recursive: true });
 
@@ -40,6 +43,10 @@ function startProcess(proc) {
     PORT: String(proc.port),
     SEED: process.env.SEED ?? "1",
     ASSUME_DEPLOYED: "true",
+    SUITE_AUTH_SECRET: process.env.SUITE_AUTH_SECRET ?? LOCAL_DEMO_SUITE_AUTH_SECRET,
+    // Temporary backwards compatibility for local services that still call
+    // each other with tenant headers. Tokens remain authoritative when sent.
+    SUITE_TRUST_HEADERS: process.env.SUITE_TRUST_HEADERS ?? "true",
     ...(proc.env ?? {}),
   };
 

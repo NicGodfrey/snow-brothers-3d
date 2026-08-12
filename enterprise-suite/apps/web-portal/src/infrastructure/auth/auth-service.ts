@@ -1,16 +1,24 @@
-import { DomainError, ForbiddenError, brand, newId, type IsoDateTime } from "@enterprise-suite/shared-kernel";
+import {
+  DomainError,
+  ForbiddenError,
+  brand,
+  newId,
+  signSuiteToken,
+  verifySuiteToken,
+  type IsoDateTime,
+  type SuiteTokenClaims,
+} from "@enterprise-suite/shared-kernel";
 import type { AuthHeaderProvider } from "../../api/client.js";
 import { createSession, sessionHeaders, type PortalSession, type TenantHeaders } from "../../domain/session.js";
 import type { Clock } from "../clock.js";
 import { Directory } from "./directory.js";
-import { signToken, verifyToken, type TokenClaims } from "./token.js";
 
 /**
  * Mock authentication and tenant resolution.
  *
  * Two ways in, both producing the same `PortalSession`:
  *
- *  - `signIn` mints a bearer token (see `token.ts`) that the browser carries in
+ *  - `signIn` mints a shared suite bearer token that the browser carries in
  *    the `portal_session` cookie;
  *  - `sessionFromHeaders` trusts `x-tenant-id` / `x-user-id` / `x-roles`
  *    directly, which is how the gateway will inject an already-authenticated
@@ -54,7 +62,7 @@ export class AuthService {
     this.secret = options.secret;
     this.ttlMs = options.ttlMinutes * 60_000;
     this.clock = options.clock;
-    this.trustHeaders = options.trustHeaders ?? true;
+    this.trustHeaders = options.trustHeaders ?? false;
   }
 
   signIn(input: SignInInput): SignInResult {
@@ -93,7 +101,7 @@ export class AuthService {
   }
 
   sessionFromToken(token: string): PortalSession {
-    const claims = verifyToken(token, this.secret, this.clock.epochMs());
+    const claims = verifySuiteToken(token, this.secret, { nowMs: this.clock.epochMs() });
     return this.sessionFromClaims(claims);
   }
 
@@ -119,16 +127,16 @@ export class AuthService {
   }
 
   tokenFor(session: PortalSession): string {
-    const claims: TokenClaims = {
-      sub: session.user.userId,
-      tid: session.tenant.tenantId,
+    const claims: SuiteTokenClaims = {
+      userId: session.user.userId,
+      tenantId: session.tenant.tenantId,
       roles: session.roles,
-      sid: session.sessionId,
+      sessionId: session.sessionId,
       iat: Math.floor(Date.parse(session.issuedAt) / 1000),
       exp: Math.floor(Date.parse(session.expiresAt) / 1000),
-      obo: session.impersonatedBy,
+      impersonatedBy: session.impersonatedBy,
     };
-    return signToken(claims, this.secret);
+    return signSuiteToken(claims, this.secret);
   }
 
   headers(session: PortalSession): TenantHeaders {
@@ -143,8 +151,14 @@ export class AuthService {
     };
   }
 
-  private sessionFromClaims(claims: TokenClaims): PortalSession {
-    return this.buildSession(claims.sub, claims.tid, claims.obo, claims.sid, claims.roles);
+  private sessionFromClaims(claims: SuiteTokenClaims): PortalSession {
+    return this.buildSession(
+      claims.userId,
+      claims.tenantId,
+      claims.impersonatedBy,
+      claims.sessionId,
+      claims.roles,
+    );
   }
 
   private buildSession(

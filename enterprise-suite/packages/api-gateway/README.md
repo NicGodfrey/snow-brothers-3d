@@ -7,9 +7,9 @@ Four things live here:
 1. **Route table** — every public path, the upstream that owns it, its auth
    mode, throttling policy and timeout, with specificity-ordered matching and
    boot-time conflict detection.
-2. **Tenant header middleware** — turns `x-tenant-id` / `x-user-id` / `x-roles`
-   into a `TenantContext`, rejects requests that lack one, and threads
-   `x-request-id` through the response.
+2. **Suite auth middleware** — verifies an HS256 bearer/cookie token, turns its
+   tenant, user and roles into a `TenantContext`, and overwrites inbound identity
+   headers before proxying.
 3. **Health and readiness** — liveness that never touches the network plus a
    cached readiness fan-out over the upstream catalog.
 4. **OpenAPI aggregator** — merges upstream documents into one, and synthesizes
@@ -35,6 +35,12 @@ npm run dev   -w @enterprise-suite/api-gateway     # listens on :4100
 npm run build -w @enterprise-suite/api-gateway
 npm test      -w @enterprise-suite/api-gateway
 ```
+
+Set `SUITE_AUTH_SECRET` to the same strong secret used by the portal login.
+Unsigned `x-tenant-id` / `x-user-id` / `x-roles` authentication is disabled by
+default. `SUITE_TRUST_HEADERS=true` enables it only as a local
+service-to-service compatibility mode; a supplied token is still verified and
+its claims always win.
 
 | Endpoint | Purpose |
 |---|---|

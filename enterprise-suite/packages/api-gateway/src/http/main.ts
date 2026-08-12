@@ -18,7 +18,10 @@ const container = createGatewayContainer({
 const findings = container.routes.audit(container.catalog.ids());
 for (const finding of findings) logger.log("warn", `route audit: ${finding}`);
 
-const server = createGatewayServer(container);
+const server = createGatewayServer(container, {
+  authSecret: process.env["SUITE_AUTH_SECRET"],
+  trustHeaders: process.env["SUITE_TRUST_HEADERS"] === "true",
+});
 server.listen(port, () => {
   logger.log("info", "api-gateway listening", {
     port,

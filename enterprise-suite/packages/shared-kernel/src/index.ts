@@ -7,3 +7,4 @@ export * from "./domain/aggregate.js";
 export * from "./events/envelope.js";
 export * from "./http/errors.js";
 export * from "./http/pagination.js";
+export * from "./auth/suite-token.js";

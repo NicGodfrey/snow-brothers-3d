@@ -21,7 +21,6 @@ export * from "./infrastructure/call-log.js";
 export * from "./infrastructure/preferences-repository.js";
 export * from "./infrastructure/auth/auth-service.js";
 export * from "./infrastructure/auth/directory.js";
-export * from "./infrastructure/auth/token.js";
 export * from "./infrastructure/transport/fetch-transport.js";
 export * from "./infrastructure/transport/mock-transport.js";
 export * from "./infrastructure/fixtures/index.js";

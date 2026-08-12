@@ -17,12 +17,15 @@ export interface PortalConfig {
   readonly gatewayUrl: string;
   readonly endpoints: Readonly<Record<ModuleKey, EndpointConfig>>;
   readonly sessionTtlMinutes: number;
-  readonly sessionSecret: string;
+  readonly suiteAuthSecret: string;
+  readonly trustHeaders: boolean;
   readonly defaultTenantId: string;
   readonly requestTimeoutMs: number;
   /** Milliseconds the mock transport waits before answering, to exercise loading paths. */
   readonly mockLatencyMs: number;
 }
+
+export const LOCAL_DEMO_SUITE_AUTH_SECRET = "local-demo-only-suite-auth-secret";
 
 const GATEWAY_PREFIX: Readonly<Record<ModuleKey, string>> = {
   sales: "/api/sales",
@@ -53,7 +56,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): PortalConfig {
     gatewayUrl,
     endpoints,
     sessionTtlMinutes: intFromEnv(env.PORTAL_SESSION_TTL_MINUTES, 480),
-    sessionSecret: env.PORTAL_SESSION_SECRET ?? "dev-only-portal-secret",
+    suiteAuthSecret: env.SUITE_AUTH_SECRET ?? LOCAL_DEMO_SUITE_AUTH_SECRET,
+    trustHeaders: env.SUITE_TRUST_HEADERS === "true",
     defaultTenantId: env.PORTAL_DEFAULT_TENANT ?? "acme",
     requestTimeoutMs: timeoutMs,
     mockLatencyMs: intFromEnv(env.PORTAL_MOCK_LATENCY_MS, 0),

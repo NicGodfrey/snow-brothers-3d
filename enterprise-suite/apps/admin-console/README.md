@@ -49,12 +49,16 @@ npm run build -w @enterprise-suite/admin-console
 | `ADMIN_TENANT`, `ADMIN_USER` | seeded values | Pre-filled in the shell's header. |
 | `WEBHOOK_DRAIN_MS` | `5000` | How often due deliveries are attempted. |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error`. |
+| `SUITE_AUTH_SECRET` | — | Shared HS256 bearer-token key. Required for token authentication. |
+| `SUITE_TRUST_HEADERS` | `false` | Development-only tenant-header authentication fallback. |
 
 ## Request contract
 
-Built on the gateway's HTTP kernel, so the header contract is the suite's:
-`x-tenant-id` and `x-user-id` are required, `x-roles` carries the caller's
+Built on the gateway's HTTP kernel, so the request contract is the suite's:
+`Authorization: Bearer <token>` supplies the signed tenant, user and
 **tenant role codes**, and `x-request-id` is echoed back on every response.
+Unsigned `x-tenant-id`, `x-user-id` and `x-roles` are accepted only when
+`SUITE_TRUST_HEADERS=true`; a valid token always takes precedence.
 
 `/health`, `/health/ready`, `/openapi.json` and the shell itself are the only
 anonymous paths.

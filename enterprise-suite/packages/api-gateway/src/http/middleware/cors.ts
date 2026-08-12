@@ -2,8 +2,8 @@ import type { Middleware } from "../router.js";
 
 /**
  * Minimal CORS for browser callers (the admin console UI, docs viewers).
- * Credentials are never enabled: the suite authenticates with headers, not
- * cookies, so wildcard origins stay safe.
+ * Credentials are never enabled: browser API clients use bearer tokens, so
+ * wildcard origins do not imply cross-origin cookie access.
  */
 export function cors(options: {
   origins?: readonly string[];
@@ -14,7 +14,14 @@ export function cors(options: {
   const origins = options.origins ?? ["*"];
   const methods = (options.methods ?? ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]).join(", ");
   const allowedHeaders = (
-    options.headers ?? ["content-type", "x-tenant-id", "x-user-id", "x-roles", "x-request-id"]
+    options.headers ?? [
+      "authorization",
+      "content-type",
+      "x-tenant-id",
+      "x-user-id",
+      "x-roles",
+      "x-request-id",
+    ]
   ).join(", ");
   const maxAge = String(options.maxAgeSeconds ?? 600);
 

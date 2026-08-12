@@ -35,6 +35,8 @@ async function main(): Promise<void> {
 
   const server = createAdminServer(container, {
     logger,
+    authSecret: process.env["SUITE_AUTH_SECRET"],
+    trustHeaders: process.env["SUITE_TRUST_HEADERS"] === "true",
     shell: { tenant: shellTenant, user: shellUser, roles: "tenant-admin" },
     corsOrigins: process.env["CORS_ORIGINS"]?.split(",").filter(Boolean),
   });

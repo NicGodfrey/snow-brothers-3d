@@ -128,6 +128,10 @@ export interface AdminServerOptions {
   readonly basePath?: string;
   readonly logger?: Logger;
   readonly corsOrigins?: readonly string[];
+  /** Shared HS256 token secret. Required to accept bearer/cookie authentication. */
+  readonly authSecret?: string;
+  /** Development-only fallback for x-tenant-id/x-user-id/x-roles. */
+  readonly trustHeaders?: boolean;
   /** Values pre-filled in the shell's header. */
   readonly shell?: {
     readonly tenant?: string;
@@ -160,6 +164,9 @@ export function buildAdminRouter(
     .use(accessLog({ logger, clock: container.clock }))
     .use(
       tenantContextMiddleware({
+        authSecret: options.authSecret,
+        trustHeaders: options.trustHeaders,
+        nowMs: () => container.clock.nowMs(),
         anonymousPaths: [
           "/",
           "/health",
@@ -288,7 +295,7 @@ export function adminOpenApiDocument(api: Router, basePath: string): Record<stri
     const responses: Record<string, unknown> = {
       "200": { description: "Success" },
       "400": { description: "Validation failure" },
-      "401": { description: "Missing x-tenant-id or x-user-id" },
+      "401": { description: "Missing or invalid suite authentication" },
       "404": { description: "Resource not found in this tenant" },
     };
     if (required.length > 0) {
@@ -313,13 +320,14 @@ export function adminOpenApiDocument(api: Router, basePath: string): Record<stri
       version: ADMIN_VERSION,
       description:
         "Tenant administration: tenants, users and roles, reference data, webhooks and feature flags. " +
-        "Every request carries x-tenant-id and x-user-id; x-roles supplies the caller's tenant role codes.",
+        "Every request carries a signed suite bearer token; explicitly trusted development callers may use tenant headers.",
     },
     servers: [{ url: basePath }],
     tags: [...tags].sort().map((name) => ({ name })),
     paths,
     components: {
       securitySchemes: {
+        suiteBearer: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
         tenantHeader: { type: "apiKey", in: "header", name: "x-tenant-id" },
         userHeader: { type: "apiKey", in: "header", name: "x-user-id" },
       },
@@ -336,7 +344,7 @@ export function adminOpenApiDocument(api: Router, basePath: string): Record<stri
         },
       },
     },
-    security: [{ tenantHeader: [], userHeader: [] }],
+    security: [{ suiteBearer: [] }],
   };
 }
 

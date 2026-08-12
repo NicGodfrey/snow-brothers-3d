@@ -20,7 +20,7 @@ export function createHarness(): TestHarness {
   const config: PortalConfig = {
     ...loadConfig({}),
     transport: "mock",
-    sessionSecret: "test-secret",
+    suiteAuthSecret: "test-secret",
     mockLatencyMs: 0,
   };
   const transport = new MockTransport({ endpoints: config.endpoints, clock });

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Router } from "@enterprise-suite/api-gateway";
+import { signSuiteToken } from "@enterprise-suite/shared-kernel";
 import { seedDemoData, SEED_TENANT_KEY } from "../src/infrastructure/seed.js";
 import {
   ADMIN_BASE_PATH,
@@ -22,7 +23,13 @@ const api = (path: string) => `${ADMIN_BASE_PATH}${path}`;
 async function seededRouter(): Promise<{ h: Harness; router: Router }> {
   const h = harness();
   await seedDemoData(h.container);
-  return { h, router: buildAdminRouter(h.container, { shell: { enabled: true } }) };
+  return {
+    h,
+    router: buildAdminRouter(h.container, {
+      shell: { enabled: true },
+      trustHeaders: true,
+    }),
+  };
 }
 
 describe("operational endpoints", () => {
@@ -158,6 +165,66 @@ describe("tenant header contract", () => {
 });
 
 describe("authorization", () => {
+  it("accepts a bearer token and ignores role-escalation headers", async () => {
+    const h = harness();
+    await seedDemoData(h.container);
+    const secret = "admin-suite-secret";
+    const router = buildAdminRouter(h.container, { authSecret: secret, trustHeaders: true });
+    const token = signSuiteToken(
+      {
+        tenantId: SEED_TENANT_KEY,
+        userId: "mei@northwind.example",
+        roles: ["auditor"],
+        exp: Math.floor(h.clock.nowMs() / 1000) + 300,
+      },
+      secret,
+    );
+
+    const allowed = await callAdmin(router, "GET", api("/users"), {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    assert.equal(allowed.status, 200);
+
+    const denied = await callAdmin(router, "POST", api("/users"), {
+      headers: {
+        authorization: `Bearer ${token}`,
+        "x-tenant-id": SEED_TENANT_KEY,
+        "x-user-id": "ops@enterprise-suite.example",
+        "x-roles": "platform-admin",
+      },
+      body: { email: "forged@northwind.example", displayName: "Forged", roles: ["tenant-admin"] },
+    });
+    assert.equal(denied.status, 403);
+  });
+
+  it("rejects an invalid bearer token instead of falling back to trusted headers", async () => {
+    const h = harness();
+    await seedDemoData(h.container);
+    const router = buildAdminRouter(h.container, {
+      authSecret: "right-secret",
+      trustHeaders: true,
+    });
+    const token = signSuiteToken(
+      {
+        tenantId: SEED_TENANT_KEY,
+        userId: "ops@enterprise-suite.example",
+        roles: ["platform-admin"],
+        exp: Math.floor(h.clock.nowMs() / 1000) + 300,
+      },
+      "wrong-secret",
+    );
+
+    const response = await callAdmin(router, "GET", api("/tenants"), {
+      headers: {
+        authorization: `Bearer ${token}`,
+        "x-tenant-id": SEED_TENANT_KEY,
+        "x-user-id": "ops@enterprise-suite.example",
+        "x-roles": "platform-admin",
+      },
+    });
+    assert.equal(response.status, 401);
+  });
+
   it("refuses a caller whose roles do not carry the permission", async () => {
     const { router } = await seededRouter();
 

@@ -80,12 +80,11 @@ Identity is mocked until `identity-access` is available. Two ways in, both
 yielding the same `PortalSession`:
 
 1. **Sign-in** (`POST /sign-in`) against the mock directory in
-   `src/infrastructure/auth/directory.ts`. It mints an HS256 bearer token
-   (`src/infrastructure/auth/token.ts`) and sets it as an `HttpOnly`,
+   `src/infrastructure/auth/directory.ts`. It mints a shared-kernel HS256 suite
+   bearer token and sets it as an `HttpOnly`,
    `SameSite=Lax` cookie. Tokens are verified for signature and expiry.
-2. **Gateway headers** — `x-tenant-id`, `x-user-id`, `x-roles` — which is how an
-   already-authenticated principal will arrive in production, and how `curl` and
-   the tests drive the portal. Refusable per deployment (`trustHeaders: false`).
+2. **Development headers** — `x-tenant-id`, `x-user-id`, `x-roles` — enabled
+   only with `SUITE_TRUST_HEADERS=true` for local compatibility.
 
 Every outbound call carries the session:
 
@@ -120,7 +119,8 @@ The default transport is the in-memory mock, so the portal runs with nothing
 else booted. Point it at real services with:
 
 ```bash
-PORTAL_TRANSPORT=http PORTAL_GATEWAY_URL=http://127.0.0.1:8080 npm run dev
+SUITE_AUTH_SECRET='replace-with-a-strong-secret' \
+  PORTAL_TRANSPORT=http PORTAL_GATEWAY_URL=http://127.0.0.1:8080 npm run dev
 ```
 
 | Variable | Default | Purpose |
@@ -131,7 +131,8 @@ PORTAL_TRANSPORT=http PORTAL_GATEWAY_URL=http://127.0.0.1:8080 npm run dev
 | `PORTAL_<MODULE>_URL` | — | Override one module (e.g. `PORTAL_SALES_URL`) |
 | `PORTAL_REQUEST_TIMEOUT_MS` | `5000` | Per-call timeout |
 | `PORTAL_RETRIES` | `2` | Retries for idempotent calls |
-| `PORTAL_SESSION_SECRET` | `dev-only-portal-secret` | Token signing key |
+| `SUITE_AUTH_SECRET` | `local-demo-only-suite-auth-secret` | Shared suite-token signing key; the default is only for local demos and must be replaced in deployments |
+| `SUITE_TRUST_HEADERS` | `false` | Development-only inbound tenant-header authentication |
 | `PORTAL_SESSION_TTL_MINUTES` | `480` | Session lifetime |
 | `PORTAL_MOCK_LATENCY_MS` | `0` | Artificial latency for the mock backend |
 

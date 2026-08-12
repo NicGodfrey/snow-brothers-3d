@@ -1,10 +1,14 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { DomainError, ForbiddenError } from "@enterprise-suite/shared-kernel";
+import {
+  DomainError,
+  ForbiddenError,
+  signSuiteToken,
+  verifySuiteToken,
+} from "@enterprise-suite/shared-kernel";
 import { AuthService } from "../src/infrastructure/auth/auth-service.js";
 import { Directory } from "../src/infrastructure/auth/directory.js";
 import { FixedClock } from "../src/infrastructure/clock.js";
-import { signToken, verifyToken } from "../src/infrastructure/auth/token.js";
 import { sessionHeaders } from "../src/domain/session.js";
 import { NOW, USERS } from "./helpers.js";
 
@@ -25,23 +29,32 @@ function authService(trustHeaders = true): { auth: AuthService; clock: FixedCloc
 describe("mock tokens", () => {
   it("round-trips claims and rejects tampering", () => {
     const claims = {
-      sub: "u-avery",
-      tid: "acme",
+      userId: "u-avery",
+      tenantId: "acme",
       roles: ["viewer"],
-      sid: "sess-1",
+      sessionId: "sess-1",
       iat: 1,
       exp: Math.floor(Date.parse(NOW) / 1000) + 60,
     };
-    const token = signToken(claims, "s3cret");
-    assert.deepEqual(verifyToken(token, "s3cret", Date.parse(NOW)).roles, ["viewer"]);
+    const token = signSuiteToken(claims, "s3cret");
+    assert.deepEqual(verifySuiteToken(token, "s3cret", { nowMs: Date.parse(NOW) }).roles, ["viewer"]);
 
     const [header, body, signature] = token.split(".");
     const forged = `${header}.${Buffer.from(
       JSON.stringify({ ...claims, roles: ["tenant-admin"] }),
     ).toString("base64url")}.${signature}`;
-    assert.throws(() => verifyToken(forged, "s3cret", Date.parse(NOW)), /Bad token signature/);
-    assert.throws(() => verifyToken(token, "other-secret", Date.parse(NOW)), /Bad token signature/);
-    assert.throws(() => verifyToken("nonsense", "s3cret", Date.parse(NOW)), /Malformed token/);
+    assert.throws(
+      () => verifySuiteToken(forged, "s3cret", { nowMs: Date.parse(NOW) }),
+      /Bad suite token signature/,
+    );
+    assert.throws(
+      () => verifySuiteToken(token, "other-secret", { nowMs: Date.parse(NOW) }),
+      /Bad suite token signature/,
+    );
+    assert.throws(
+      () => verifySuiteToken("nonsense", "s3cret", { nowMs: Date.parse(NOW) }),
+      /Malformed suite token/,
+    );
   });
 
   it("refuses expired tokens", () => {

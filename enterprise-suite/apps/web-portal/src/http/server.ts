@@ -11,22 +11,15 @@ import { registerShellRoutes } from "./routes/shell-routes.js";
 /**
  * Wires the router.
  *
- * Session resolution order: cookie, then `Authorization: Bearer`, then the
- * gateway headers. A bad cookie or token yields an anonymous request (the
- * shell redirects to sign-in); bad *headers* raise, because a caller that
- * asserts an identity should be told the assertion was rejected.
+ * Session resolution order: `Authorization: Bearer`, cookie, then explicitly
+ * trusted development headers. A supplied but invalid token fails closed and
+ * is never allowed to fall back to spoofable role headers.
  */
 export function buildRouter(container: PortalContainer): Router {
   const router = new Router({
     resolveSession(headers, cookies): PortalSession | undefined {
-      const token = cookies[SESSION_COOKIE] ?? bearerToken(headers.authorization);
-      if (token) {
-        try {
-          return container.auth.sessionFromToken(token);
-        } catch {
-          return container.auth.sessionFromHeaders(headers);
-        }
-      }
+      const token = bearerToken(headers.authorization) ?? cookies[SESSION_COOKIE];
+      if (token) return container.auth.sessionFromToken(token);
       return container.auth.sessionFromHeaders(headers);
     },
     onError(error, req) {

@@ -64,6 +64,7 @@ before(async () => {
     openapi: { stubMissing: true, cacheTtlMs: 0 },
   });
   server = createGatewayServer(container, {
+    trustHeaders: true,
     forwarder: async (decision) => {
       forwarded.push(decision);
       return {

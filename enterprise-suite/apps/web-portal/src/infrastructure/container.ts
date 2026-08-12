@@ -72,10 +72,11 @@ export function createContainer(overrides: ContainerOverrides = {}): PortalConta
         }));
 
   const auth = new AuthService({
-    secret: config.sessionSecret,
+    secret: config.suiteAuthSecret,
     ttlMinutes: config.sessionTtlMinutes,
     clock,
     directory,
+    trustHeaders: config.trustHeaders,
   });
 
   const preferencesRepository = overrides.preferencesRepository ?? new InMemoryPreferencesRepository();

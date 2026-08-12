@@ -1,6 +1,11 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { createTenantContext, DomainError, ForbiddenError } from "@enterprise-suite/shared-kernel";
+import {
+  createTenantContext,
+  DomainError,
+  ForbiddenError,
+  signSuiteToken,
+} from "@enterprise-suite/shared-kernel";
 import { html, json, Router, type HttpRequest } from "../src/http/router.js";
 import { errorHandler } from "../src/http/middleware/error-handler.js";
 import { rateLimit } from "../src/http/middleware/rate-limit.js";
@@ -135,7 +140,7 @@ describe("tenant context middleware", () => {
   const chain = (path: string, headers: Record<string, string>) => {
     const router = new Router()
       .use(errorHandler({}))
-      .use(tenantContextMiddleware({ anonymousPaths: ["/health"] }))
+      .use(tenantContextMiddleware({ anonymousPaths: ["/health"], trustHeaders: true }))
       .get("/health", () => json(200, { ok: true }))
       .get("/data", (req) => json(200, { tenant: String(req.ctx.tenantId), roles: req.ctx.roles.map(String) }));
     return router.handle(request({ path, headers }));
@@ -164,6 +169,83 @@ describe("tenant context middleware", () => {
     assert.equal(isAnonymousPath("/healthz", ["/health"]), false);
     assert.deepEqual(parseRoles(" a , b ,", ["viewer"]), ["a", "b"]);
     assert.deepEqual(parseRoles("", ["viewer"]), ["viewer"]);
+  });
+
+  it("uses verified token claims instead of inbound identity headers", async () => {
+    const nowMs = Date.parse("2026-08-12T18:00:00.000Z");
+    const secret = "gateway-suite-secret";
+    const token = signSuiteToken(
+      {
+        tenantId: "acme",
+        userId: "u_viewer",
+        roles: ["viewer"],
+        exp: Math.floor(nowMs / 1000) + 300,
+      },
+      secret,
+    );
+    const router = new Router()
+      .use(errorHandler({}))
+      .use(tenantContextMiddleware({ authSecret: secret, trustHeaders: true, nowMs: () => nowMs }))
+      .get("/data", (req) =>
+        json(200, {
+          tenant: String(req.ctx.tenantId),
+          user: String(req.ctx.userId),
+          roles: req.ctx.roles.map(String),
+        }),
+      );
+
+    const response = await router.handle(
+      request({
+        path: "/data",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "x-tenant-id": "other",
+          "x-user-id": "attacker",
+          "x-roles": "platform-admin",
+        },
+      }),
+    );
+    assert.deepEqual(response.body, { tenant: "acme", user: "u_viewer", roles: ["viewer"] });
+  });
+
+  it("accepts a signed cookie and rejects a bad bearer without header fallback", async () => {
+    const nowMs = Date.parse("2026-08-12T18:00:00.000Z");
+    const claims = {
+      tenantId: "acme",
+      userId: "u_1",
+      roles: ["viewer"],
+      exp: Math.floor(nowMs / 1000) + 300,
+    };
+    const goodToken = signSuiteToken(claims, "right-secret");
+    const badToken = signSuiteToken(claims, "wrong-secret");
+    const router = new Router()
+      .use(errorHandler({}))
+      .use(
+        tenantContextMiddleware({
+          authSecret: "right-secret",
+          trustHeaders: true,
+          nowMs: () => nowMs,
+        }),
+      )
+      .get("/data", (req) => json(200, { tenant: String(req.ctx.tenantId) }));
+
+    const cookie = await router.handle(
+      request({ path: "/data", headers: { cookie: `portal_session=${goodToken}` } }),
+    );
+    assert.equal(cookie.status, 200);
+
+    const rejected = await router.handle(
+      request({
+        path: "/data",
+        headers: {
+          authorization: `Bearer ${badToken}`,
+          "x-tenant-id": "acme",
+          "x-user-id": "attacker",
+          "x-roles": "platform-admin",
+        },
+      }),
+    );
+    assert.equal(rejected.status, 401);
   });
 });
 
