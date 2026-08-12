@@ -56,6 +56,13 @@ export interface NetItemResult {
  * backwards by the item lead time. PERIOD_ORDER_QTY additionally pulls in
  * the shortfalls of the next `periods - 1` buckets so a single order covers
  * the whole window.
+ *
+ * The grid follows the textbook convention that planned receipts land in the
+ * bucket that needs them; orders whose release would fall before the horizon
+ * are flagged RELEASE_PAST_DUE. Stock exceptions (SHORTAGE,
+ * BELOW_SAFETY_STOCK, EXPEDITE_RECEIPT) are derived from a *feasibility*
+ * projection in which a past-due order cannot arrive earlier than the item
+ * lead time - i.e. what will really happen unless a planner intervenes.
  */
 export declare function netItem(input: NetItemInput): NetItemResult;
 //# sourceMappingURL=mrp.d.ts.map

@@ -11,6 +11,13 @@ import { roundQty } from "./types.js";
  * backwards by the item lead time. PERIOD_ORDER_QTY additionally pulls in
  * the shortfalls of the next `periods - 1` buckets so a single order covers
  * the whole window.
+ *
+ * The grid follows the textbook convention that planned receipts land in the
+ * bucket that needs them; orders whose release would fall before the horizon
+ * are flagged RELEASE_PAST_DUE. Stock exceptions (SHORTAGE,
+ * BELOW_SAFETY_STOCK, EXPEDITE_RECEIPT) are derived from a *feasibility*
+ * projection in which a past-due order cannot arrive earlier than the item
+ * lead time - i.e. what will really happen unless a planner intervenes.
  */
 export function netItem(input) {
     const { calendar, safetyStock, lotSizing } = input;
@@ -53,8 +60,10 @@ export function netItem(input) {
             netRequirement,
         });
     }
-    detectStockExceptions(input, rows, exceptions);
-    detectReceiptTimingExceptions(input, rows, scheduled, exceptions);
+    const feasibleOnHand = feasibleProjection(input, gross, scheduled, plannedOrders, leadTimeBuckets);
+    detectStockExceptions(input, feasibleOnHand, exceptions);
+    detectExpediteOpportunity(input, feasibleOnHand, scheduled, exceptions);
+    detectExcessReceipts(input, rows, scheduled, exceptions);
     return { sku: input.sku, rows, plannedOrders, exceptions };
 }
 /**
@@ -93,53 +102,86 @@ function buildProposal(input, calendar, dueIndex, qty, leadTimeBuckets, exceptio
     }
     return { dueIndex, dueDate, releaseDate, releaseIndex, qty, pastDue };
 }
-function detectStockExceptions(input, rows, exceptions) {
-    for (const row of rows) {
-        if (row.projectedOnHand < 0) {
+/**
+ * End-of-bucket on-hand assuming past-due orders arrive at the earliest
+ * feasible bucket (release now + lead time) instead of when they are needed.
+ */
+function feasibleProjection(input, gross, scheduled, plannedOrders, leadTimeBuckets) {
+    const n = gross.length;
+    const receipts = new Array(n).fill(0);
+    for (const order of plannedOrders) {
+        const arrival = order.pastDue ? Math.min(leadTimeBuckets, n - 1) : order.dueIndex;
+        receipts[arrival] += order.qty;
+    }
+    const onHand = [];
+    let balance = input.onHand;
+    for (let t = 0; t < n; t += 1) {
+        balance = roundQty(balance + scheduled[t] + receipts[t] - gross[t]);
+        onHand.push(balance);
+    }
+    return onHand;
+}
+function detectStockExceptions(input, feasibleOnHand, exceptions) {
+    for (let t = 0; t < feasibleOnHand.length; t += 1) {
+        const weekStart = input.calendar.weekStarts[t];
+        if (feasibleOnHand[t] < 0) {
             exceptions.push({
                 code: "SHORTAGE",
                 severity: "ERROR",
-                weekStart: row.weekStart,
-                message: `${input.sku}: projected on-hand ${row.projectedOnHand} in week ${row.weekStart} is negative even after planning`,
+                weekStart,
+                message: `${input.sku}: projected on-hand ${feasibleOnHand[t]} in week ${weekStart} is negative ` +
+                    `given feasible arrival dates; demand will be missed without expediting`,
             });
         }
-        else if (input.safetyStock > 0 && roundQty(row.projectedOnHand) < input.safetyStock) {
+        else if (input.safetyStock > 0 && feasibleOnHand[t] < input.safetyStock) {
             exceptions.push({
                 code: "BELOW_SAFETY_STOCK",
                 severity: "WARNING",
-                weekStart: row.weekStart,
-                message: `${input.sku}: projected on-hand ${row.projectedOnHand} in week ${row.weekStart} is below safety stock ${input.safetyStock}`,
+                weekStart,
+                message: `${input.sku}: projected on-hand ${feasibleOnHand[t]} in week ${weekStart} ` +
+                    `is below safety stock ${input.safetyStock}`,
             });
         }
     }
 }
 /**
- * Action messages about existing scheduled receipts:
- * - EXPEDITE_RECEIPT: a shortage occurs while a receipt sits in a later bucket
- * - EXCESS_RECEIPT:   a receipt arrives although on-hand never dips below
- *                     safety stock through the rest of the horizon without it
+ * If the first feasibility problem happens while a scheduled receipt sits in
+ * a later bucket, suggest pulling that receipt in - usually cheaper than a
+ * new expedited order.
  */
-function detectReceiptTimingExceptions(input, rows, scheduled, exceptions) {
-    const firstProblemIndex = rows.findIndex((row) => row.projectedOnHand < 0 || (input.safetyStock > 0 && row.projectedOnHand < input.safetyStock));
-    if (firstProblemIndex >= 0) {
-        for (let u = firstProblemIndex + 1; u < scheduled.length; u += 1) {
-            if (scheduled[u] > 0) {
-                exceptions.push({
-                    code: "EXPEDITE_RECEIPT",
-                    severity: "WARNING",
-                    weekStart: input.calendar.weekStarts[u],
-                    message: `${input.sku}: scheduled receipt of ${scheduled[u]} in week ${input.calendar.weekStarts[u]} ` +
-                        `could be expedited to cover the shortfall in week ${input.calendar.weekStarts[firstProblemIndex]}`,
-                });
-                break; // one actionable message is enough
-            }
+function detectExpediteOpportunity(input, feasibleOnHand, scheduled, exceptions) {
+    const firstProblem = feasibleOnHand.findIndex((balance) => balance < 0 || (input.safetyStock > 0 && balance < input.safetyStock));
+    if (firstProblem < 0)
+        return;
+    for (let u = firstProblem + 1; u < scheduled.length; u += 1) {
+        if (scheduled[u] > 0) {
+            exceptions.push({
+                code: "EXPEDITE_RECEIPT",
+                severity: "WARNING",
+                weekStart: input.calendar.weekStarts[u],
+                message: `${input.sku}: scheduled receipt of ${scheduled[u]} in week ${input.calendar.weekStarts[u]} ` +
+                    `could be expedited to cover the shortfall in week ${input.calendar.weekStarts[firstProblem]}`,
+            });
+            return; // one actionable message is enough
         }
     }
+}
+/**
+ * A receipt is excess when the projected on-hand would stay at or above
+ * safety stock for the rest of the horizon even without it - candidate for
+ * cancellation or push-out.
+ */
+function detectExcessReceipts(input, rows, scheduled, exceptions) {
     for (let t = 0; t < rows.length; t += 1) {
         if (scheduled[t] <= 0)
             continue;
-        const minOnHandWithoutReceipt = minProjectedOnHandExcluding(rows, t, scheduled[t]);
-        if (minOnHandWithoutReceipt >= input.safetyStock) {
+        let min = Number.POSITIVE_INFINITY;
+        for (let u = t; u < rows.length; u += 1) {
+            const adjusted = roundQty(rows[u].projectedOnHand - scheduled[t]);
+            if (adjusted < min)
+                min = adjusted;
+        }
+        if (min >= input.safetyStock) {
             exceptions.push({
                 code: "EXCESS_RECEIPT",
                 severity: "WARNING",
@@ -149,15 +191,6 @@ function detectReceiptTimingExceptions(input, rows, scheduled, exceptions) {
             });
         }
     }
-}
-function minProjectedOnHandExcluding(rows, receiptIndex, receiptQty) {
-    let min = Number.POSITIVE_INFINITY;
-    for (let t = receiptIndex; t < rows.length; t += 1) {
-        const adjusted = roundQty(rows[t].projectedOnHand - receiptQty);
-        if (adjusted < min)
-            min = adjusted;
-    }
-    return min;
 }
 function padTo(values, length) {
     const out = new Array(length).fill(0);
