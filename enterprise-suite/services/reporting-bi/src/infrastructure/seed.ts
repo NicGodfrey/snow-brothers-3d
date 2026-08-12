@@ -142,6 +142,10 @@ export function demoEvents(
     at: Date,
     payload: Record<string, unknown>,
   ): void => {
+    // Today is only half over: events later in the day than the anchor have
+    // not happened yet, and a warehouse with facts in the future reads as a
+    // bug in every freshness indicator.
+    if (at > anchor) return;
     sequence += 1;
     events.push({
       eventId: brand<string, "Ulid">(`seed-evt-${String(sequence).padStart(6, "0")}`),
@@ -253,7 +257,11 @@ export function demoEvents(
     }
 
     // --- marketing --------------------------------------------------------
-    for (let i = 0; i < rng.int(2, 9); i += 1) {
+    // Lead volume is sized against the campaign spend emitted below, so
+    // cost-per-lead lands either side of its target rather than reading
+    // permanently off-track.
+    const leadCount = isWeekend ? rng.int(2, 6) : rng.int(12, 20);
+    for (let i = 0; i < leadCount; i += 1) {
       emit("marketing.lead.captured.v1", "Lead", at(8, i * 3), {
         leadId: `LEAD-${sequence}`,
         email: `lead${sequence}@example.com`,
@@ -284,14 +292,16 @@ export function demoEvents(
         unsubscribed: rng.int(1, 12),
       });
     }
-    if (day.getUTCDate() === 1) {
+    // Spend is booked weekly rather than as a monthly lump: a lumpy
+    // denominator would make every month-to-date efficiency ratio meaningless.
+    if (weekday === 1) {
       for (const campaign of CAMPAIGNS) {
         emit("marketing.budget.spend-recorded.v1", "Budget", at(6), {
           budgetId: `BUD-${campaign}`,
           campaignId: campaign,
           channelId: rng.pick(CHANNELS),
           category: rng.pick(["media", "content", "events"]),
-          amount: { amountMinor: rng.int(400_000, 1_200_000), currency: "EUR" },
+          amount: { amountMinor: rng.int(90_000, 280_000), currency: "EUR" },
         });
       }
     }
@@ -355,13 +365,18 @@ export function demoEvents(
       });
       if (rng.chance(0.93)) {
         const deliveredAt = new Date(at(13).getTime() + rng.int(1, 4) * 86_400_000);
-        emit("logistics.shipment.delivered", "Shipment", deliveredAt, {
-          shipmentId: `SHP-${sequence}`,
-          reference: `SHP-${sequence}`,
-          carrierCode: carrier,
-          orderRef: `SO-${sequence}`,
-          deliveredAt: deliveredAt.toISOString(),
-        });
+        // Shipments booked in the last few days are still in transit at the
+        // anchor. Emitting their delivery would stamp a fact in the future
+        // and inflate the current period's delivery rate.
+        if (deliveredAt <= anchor) {
+          emit("logistics.shipment.delivered", "Shipment", deliveredAt, {
+            shipmentId: `SHP-${sequence}`,
+            reference: `SHP-${sequence}`,
+            carrierCode: carrier,
+            orderRef: `SO-${sequence}`,
+            deliveredAt: deliveredAt.toISOString(),
+          });
+        }
       } else {
         emit("logistics.shipment.exception", "Shipment", at(20), {
           shipmentId: `SHP-${sequence}`,
