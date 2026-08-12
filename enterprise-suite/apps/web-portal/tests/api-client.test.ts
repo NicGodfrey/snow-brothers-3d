@@ -139,21 +139,43 @@ describe("ApiClient", () => {
 
 describe("module client stubs", () => {
   it("build the routes the services expose", async () => {
-    const transport = new ScriptedTransport([ok({ items: [] }), ok({}), ok([])]);
+    const transport = new ScriptedTransport([ok({ items: [] }), ok({})]);
     const sales = new SalesApi(client(transport));
 
     await sales.listQuotes({ status: "sent", page: 2 });
     await sales.approveDiscount("apv-1", { approvedPct: 0.15 });
-    await sales.search("north", 3);
 
     assert.deepEqual(
       transport.seen.map((r) => `${r.method} ${r.url}`),
       [
         "GET http://svc/api/sales/quotes?status=sent&page=2",
         "POST http://svc/api/sales/approvals/apv-1/approve",
-        "GET http://svc/api/sales/search?q=north&limit=3",
       ],
     );
+  });
+
+  it("composes search from the services' real list endpoints", async () => {
+    const transport = new ScriptedTransport([
+      ok({ items: [{ id: "qte-1", number: "Q-1", customerName: "Northwind Traders", status: "sent" }] }),
+      ok({ items: [] }),
+      ok({ items: [] }),
+    ]);
+    const sales = new SalesApi(client(transport));
+
+    const hits = await sales.search("north", 3);
+
+    assert.deepEqual(
+      transport.seen.map((r) => `${r.method} ${r.url}`),
+      [
+        "GET http://svc/api/sales/quotes?pageSize=50",
+        "GET http://svc/api/sales/orders?pageSize=50",
+        "GET http://svc/api/sales/customers?pageSize=50",
+      ],
+      "no synthetic /search endpoint is required of the backend",
+    );
+    assert.equal(hits.length, 1);
+    assert.equal(hits[0]!.title, "Q-1 · Northwind Traders");
+    assert.equal(hits[0]!.path, "/m/sales/quotes?q=north");
   });
 
   it("encodes path parameters", async () => {

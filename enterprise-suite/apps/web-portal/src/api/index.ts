@@ -50,12 +50,24 @@ export interface ApiClients {
   readonly byModule: Readonly<Record<ModuleKey, ModuleApi>>;
 }
 
+/**
+ * A gateway prefix served by a different upstream than the module's main one
+ * (SRM's procurement documents, PRM's channel deal registrations). The sibling
+ * base URL is derived from the module endpoint so a single `PORTAL_GATEWAY_URL`
+ * keeps configuring everything.
+ */
+export function siblingBaseUrl(baseUrl: string, fromPrefix: string, toPrefix: string): string {
+  const trimmed = baseUrl.replace(/\/+$/, "");
+  return trimmed.endsWith(fromPrefix)
+    ? `${trimmed.slice(0, -fromPrefix.length)}${toPrefix}`
+    : `${trimmed}${toPrefix}`;
+}
+
 export function createApiClients(options: ApiClientsOptions): ApiClients {
-  const build = (module: ModuleKey, service: string): ApiClient => {
-    const endpoint = options.endpoints[module];
-    return new ApiClient({
+  const build = (service: string, endpoint: EndpointConfig, baseUrl = endpoint.baseUrl): ApiClient =>
+    new ApiClient({
       service,
-      baseUrl: endpoint.baseUrl,
+      baseUrl,
       transport: options.transport,
       auth: options.auth,
       defaultTimeoutMs: endpoint.timeoutMs,
@@ -65,28 +77,25 @@ export function createApiClients(options: ApiClientsOptions): ApiClients {
       sleep: options.sleep,
       newRequestId: options.newRequestId,
     });
-  };
 
-  const sales = new SalesApi(build("sales", "sales-erp"));
-  const marketing = new MarketingApi(build("marketing", "marketing-erp"));
-  const inventory = new InventoryApi(build("inventory", "inventory-wms"));
-  const procurementHttp = new ApiClient({
-    service: "procurement-srm",
-    baseUrl:
-      options.endpoints.srm.baseUrl.replace(/\/api\/srm\/?$/, "/api/procurement") ||
-      "http://127.0.0.1:4100/api/procurement",
-    transport: options.transport,
-    auth: options.auth,
-    defaultTimeoutMs: options.endpoints.srm.timeoutMs,
-    retries: options.endpoints.srm.retries,
-    onCall: options.onCall,
-    now: options.now,
-    sleep: options.sleep,
-    newRequestId: options.newRequestId,
-  });
-  const srm = new SrmApi(build("srm", "srm-core"), procurementHttp);
-  const prm = new PrmApi(build("prm", "prm-core"));
-  const finance = new FinanceApi(build("finance", "finance-erp"));
+  const { endpoints } = options;
+  const procurementHttp = build(
+    "procurement-srm",
+    endpoints.srm,
+    siblingBaseUrl(endpoints.srm.baseUrl, "/api/srm", "/api/procurement"),
+  );
+  const channelHttp = build(
+    "channel-prm",
+    endpoints.prm,
+    siblingBaseUrl(endpoints.prm.baseUrl, "/api/prm", "/api/channel"),
+  );
+
+  const sales = new SalesApi(build("sales-erp", endpoints.sales));
+  const marketing = new MarketingApi(build("marketing-erp", endpoints.marketing));
+  const inventory = new InventoryApi(build("inventory-wms", endpoints.inventory));
+  const srm = new SrmApi(build("srm-core", endpoints.srm), procurementHttp);
+  const prm = new PrmApi(build("prm-core", endpoints.prm), channelHttp);
+  const finance = new FinanceApi(build("finance-erp", endpoints.finance));
 
   return {
     sales,

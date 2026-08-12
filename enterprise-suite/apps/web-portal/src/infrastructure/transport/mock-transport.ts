@@ -37,6 +37,16 @@ export interface MockTransportOptions {
 
 const RESERVED_QUERY_KEYS = new Set(["page", "pageSize", "q", "sort", "limit"]);
 
+/**
+ * Gateway prefixes served by a sibling upstream but backed by the same module
+ * fixture: procurement documents belong to the SRM workspace, channel deal
+ * registrations to PRM. Mirrors `siblingBaseUrl` in the client factory.
+ */
+const SIBLING_PREFIXES: ReadonlyArray<{ module: ModuleKey; from: string; to: string }> = [
+  { module: "srm", from: "/api/srm", to: "/api/procurement" },
+  { module: "prm", from: "/api/prm", to: "/api/channel" },
+];
+
 export class MockTransport implements Transport {
   private readonly bases: ReadonlyArray<{ module: ModuleKey; base: string }>;
   private readonly clock: Clock;
@@ -46,10 +56,20 @@ export class MockTransport implements Transport {
   readonly calls: Array<{ module: ModuleKey; method: string; path: string; tenantId: string }> = [];
 
   constructor(options: MockTransportOptions) {
-    this.bases = MODULE_KEYS.map((module) => ({
+    const bases = MODULE_KEYS.map((module) => ({
       module,
       base: options.endpoints[module].baseUrl.replace(/\/+$/, ""),
-    })).sort((a, b) => b.base.length - a.base.length);
+    }));
+    for (const sibling of SIBLING_PREFIXES) {
+      const owner = bases.find((entry) => entry.module === sibling.module);
+      if (owner?.base.endsWith(sibling.from)) {
+        bases.push({
+          module: sibling.module,
+          base: `${owner.base.slice(0, -sibling.from.length)}${sibling.to}`,
+        });
+      }
+    }
+    this.bases = bases.sort((a, b) => b.base.length - a.base.length);
     this.clock = options.clock;
     this.latencyMs = options.latencyMs ?? 0;
   }
@@ -112,18 +132,17 @@ export class MockTransport implements Transport {
       return okResponse(searchFixture(fixture, url.searchParams));
     }
 
-    const [, slug, id] = path.split("/");
-    const resource = fixture.resources.find((r) => r.slug === slug);
-    if (!resource) {
+    const match = matchResource(fixture, path);
+    if (!match) {
       return errorResponse(404, "ROUTE_NOT_FOUND", `${request.method} ${path}`);
     }
-    if (id) {
-      const row = resource.rows.find((r) => r.id === id);
+    if (match.rest) {
+      const row = match.resource.rows.find((r) => r.id === match.rest);
       return row
         ? okResponse(row)
-        : errorResponse(404, "NOT_FOUND", `${slug} not found: ${id}`);
+        : errorResponse(404, "NOT_FOUND", `${match.resource.slug} not found: ${match.rest}`);
     }
-    return okResponse(listResource(resource, url.searchParams));
+    return okResponse(listResource(match.resource, url.searchParams));
   }
 
   private handleWrite(
@@ -131,9 +150,8 @@ export class MockTransport implements Transport {
     path: string,
     request: ApiRequest,
   ): ApiResponse {
-    const [, slug] = path.split("/");
-    const resource = fixture.resources.find((r) => r.slug === slug);
-    if (!resource) {
+    const match = matchResource(fixture, path);
+    if (!match) {
       return errorResponse(404, "ROUTE_NOT_FOUND", `${request.method} ${path}`);
     }
     // Writes are acknowledged, not applied: the portal only needs to prove it
@@ -142,7 +160,7 @@ export class MockTransport implements Transport {
       status: 202,
       headers: {},
       body: {
-        id: newId(slug.slice(0, 3)),
+        id: newId(match.resource.slug.slice(0, 3)),
         accepted: true,
         module: fixture.module,
         command: `${request.method} ${path}`,
@@ -173,6 +191,25 @@ export class MockTransport implements Transport {
     this.datasets.set(tenantId, dataset);
     return dataset;
   }
+}
+
+/**
+ * Resolves a request path against the fixture's resources. Slugs may span
+ * several segments (`ar/invoices`, `mdf/requests`), so the longest matching
+ * slug wins and whatever follows it is treated as the row id / sub-path.
+ */
+function matchResource(
+  fixture: ModuleFixture,
+  path: string,
+): { resource: ResourceFixture; rest: string } | undefined {
+  const trimmed = path.replace(/^\/+/, "");
+  let best: { resource: ResourceFixture; rest: string } | undefined;
+  for (const resource of fixture.resources) {
+    if (trimmed !== resource.slug && !trimmed.startsWith(`${resource.slug}/`)) continue;
+    if (best && resource.slug.length <= best.resource.slug.length) continue;
+    best = { resource, rest: trimmed.slice(resource.slug.length).replace(/^\//, "") };
+  }
+  return best;
 }
 
 function listResource(resource: ResourceFixture, params: URLSearchParams) {

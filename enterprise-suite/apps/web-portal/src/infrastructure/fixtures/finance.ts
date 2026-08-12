@@ -183,14 +183,14 @@ export const buildFinanceFixture: FixtureBuilder = (ctx) => {
     module: "finance",
     resources: [
       resource<ReceivableDto>({
-        slug: "receivables",
+        slug: "ar/invoices",
         rows: receivables,
         searchable: ["invoiceNumber", "customerName", "ageingBucket", "status"],
         title: (row) => `${row.invoiceNumber} · ${row.customerName}`,
         subtitle: (row) => `Receivable · ${row.ageingBucket}`,
       }),
       resource<PayableDto>({
-        slug: "payables",
+        slug: "ap/bills",
         rows: payables,
         searchable: ["invoiceNumber", "supplierName", "status"],
         title: (row) => `${row.invoiceNumber} · ${row.supplierName}`,

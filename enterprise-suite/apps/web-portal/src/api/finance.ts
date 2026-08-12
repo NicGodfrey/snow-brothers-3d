@@ -1,10 +1,28 @@
 import type { Money } from "@enterprise-suite/shared-kernel";
 import type { ModuleKey } from "../domain/module.js";
 import type { ApiClient } from "./client.js";
-import { BaseModuleApi } from "./module-api.js";
-import type { ApiPage, ListQuery } from "./types.js";
+import {
+  BaseModuleApi,
+  asPage,
+  composeHits,
+  count,
+  emptyPage,
+  hitSource,
+  moneyValue,
+  statusOf,
+  sumMoney,
+  type ModuleSummaryDto,
+  type SearchHit,
+} from "./module-api.js";
+import type { ApiPage, ListQuery, RequestOptions, RowLike } from "./types.js";
 
-/** Typed stub for `finance-erp`: receivables, payables, journals, periods. */
+/**
+ * Typed client for `finance-erp` behind the gateway's `/api/finance` prefix.
+ *
+ * Receivables map to the real `ar/invoices` routes and payables to
+ * `ap/bills`; journals are served as-is. Summary/search are composed from
+ * those lists client-side. Periods have no gateway read route yet.
+ */
 
 export type AgeingBucket = "current" | "1-30" | "31-60" | "61-90" | "90+";
 export type InvoiceStatus = "draft" | "open" | "part-paid" | "paid" | "written-off";
@@ -92,33 +110,131 @@ export class FinanceApi extends BaseModuleApi {
     super(http);
   }
 
+  override async summary(options?: RequestOptions): Promise<ModuleSummaryDto> {
+    const [receivables, payables, journals] = await Promise.all([
+      this.listReceivables({ pageSize: 100 }, options),
+      this.listPayables({ pageSize: 100 }, options).catch(() => emptyPage<PayableDto>()),
+      this.listJournals({ pageSize: 100 }, options).catch(() => emptyPage<JournalDto>()),
+    ]);
+
+    const now = Date.now();
+    const openReceivables = receivables.items.filter(
+      (r) => (r.outstanding?.amountMinor ?? 0) > 0,
+    );
+    const receivablesOutstanding = sumMoney(openReceivables.map((r) => r.outstanding));
+    const payablesOutstanding = sumMoney(
+      payables.items
+        .filter((p) => (p.outstanding?.amountMinor ?? 0) > 0)
+        .map((p) => p.outstanding),
+    );
+    const overdue = openReceivables.filter(
+      (r) => r.dueOn !== undefined && Date.parse(r.dueOn) < now,
+    ).length;
+    const drafts = journals.items.filter((j) => statusOf(j) === "draft").length;
+
+    return {
+      module: "finance",
+      asOf: new Date().toISOString(),
+      metrics: {
+        ...(receivablesOutstanding
+          ? { receivablesOutstanding: moneyValue(receivablesOutstanding) }
+          : {}),
+        ...(payablesOutstanding ? { payablesOutstanding: moneyValue(payablesOutstanding) } : {}),
+        overdueInvoices: count(overdue),
+        draftJournals: count(drafts),
+      },
+    };
+  }
+
+  override async list(
+    resource: string,
+    query?: ListQuery,
+    options?: RequestOptions,
+  ): Promise<ApiPage<RowLike>> {
+    switch (resource) {
+      case "receivables":
+        return (await this.listReceivables(query, options)) as unknown as ApiPage<RowLike>;
+      case "payables":
+        return (await this.listPayables(query, options)) as unknown as ApiPage<RowLike>;
+      case "journals":
+        return (await this.listJournals(query, options)) as unknown as ApiPage<RowLike>;
+      case "periods":
+        return (await this.listPeriods(query, options)) as unknown as ApiPage<RowLike>;
+      default:
+        return super.list(resource, query, options);
+    }
+  }
+
+  override async search(term: string, limit = 5, options?: RequestOptions): Promise<readonly SearchHit[]> {
+    if (!term.trim()) return [];
+    const [receivables, payables, journals] = await Promise.all([
+      this.listReceivables({ pageSize: 50 }, options),
+      this.listPayables({ pageSize: 50 }, options).catch(() => emptyPage<PayableDto>()),
+      this.listJournals({ pageSize: 50 }, options).catch(() => emptyPage<JournalDto>()),
+    ]);
+    return composeHits("finance", term, limit, [
+      hitSource({
+        slug: "receivables",
+        rows: receivables.items,
+        fields: ["invoiceNumber", "customerName", "ageingBucket", "status"],
+        title: (row) => `${row.invoiceNumber} · ${row.customerName}`,
+        subtitle: (row) => `Receivable · ${row.ageingBucket ?? row.status}`,
+      }),
+      hitSource({
+        slug: "payables",
+        rows: payables.items,
+        fields: ["invoiceNumber", "supplierName", "status"],
+        title: (row) => `${row.invoiceNumber} · ${row.supplierName}`,
+        subtitle: (row) => `Payable · due ${row.dueOn}`,
+      }),
+      hitSource({
+        slug: "journals",
+        rows: journals.items,
+        fields: ["reference", "period", "status"],
+        title: (row) => `${row.reference} · ${row.period}`,
+        subtitle: (row) => `Journal · ${row.status}`,
+      }),
+    ]);
+  }
+
   listReceivables(
     query: ListQuery & { bucket?: AgeingBucket; customerId?: string } = {},
+    options?: RequestOptions,
   ): Promise<ApiPage<ReceivableDto>> {
-    return this.http.get<ApiPage<ReceivableDto>>("/receivables", { query: { ...query } });
+    return this.http
+      .get<unknown>("/ar/invoices", { ...options, query: { ...query } })
+      .then(asPage<ReceivableDto>);
   }
 
   applyPayment(invoiceId: string, input: ApplyPaymentInput, idempotencyKey?: string): Promise<ReceivableDto> {
     return this.http.post<ReceivableDto>(
-      `/receivables/${encodeURIComponent(invoiceId)}/payments`,
+      `/ar/invoices/${encodeURIComponent(invoiceId)}/payments`,
       { body: input, idempotencyKey },
     );
   }
 
   listPayables(
     query: ListQuery & { supplierId?: string; dueBefore?: string } = {},
+    options?: RequestOptions,
   ): Promise<ApiPage<PayableDto>> {
-    return this.http.get<ApiPage<PayableDto>>("/payables", { query: { ...query } });
+    return this.http
+      .get<unknown>("/ap/bills", { ...options, query: { ...query } })
+      .then(asPage<PayableDto>);
   }
 
   schedulePayment(invoiceId: string, payOn: string): Promise<PayableDto> {
-    return this.http.post<PayableDto>(`/payables/${encodeURIComponent(invoiceId)}/schedule`, {
+    return this.http.post<PayableDto>(`/ap/bills/${encodeURIComponent(invoiceId)}/schedule`, {
       body: { payOn },
     });
   }
 
-  listJournals(query: ListQuery & { status?: JournalStatus; period?: string } = {}): Promise<ApiPage<JournalDto>> {
-    return this.http.get<ApiPage<JournalDto>>("/journals", { query: { ...query } });
+  listJournals(
+    query: ListQuery & { status?: JournalStatus; period?: string } = {},
+    options?: RequestOptions,
+  ): Promise<ApiPage<JournalDto>> {
+    return this.http
+      .get<unknown>("/journals", { ...options, query: { ...query } })
+      .then(asPage<JournalDto>);
   }
 
   getJournal(journalId: string): Promise<JournalDto> {
@@ -135,8 +251,13 @@ export class FinanceApi extends BaseModuleApi {
     });
   }
 
-  listPeriods(query: ListQuery & { status?: PeriodStatus } = {}): Promise<ApiPage<PeriodDto>> {
-    return this.http.get<ApiPage<PeriodDto>>("/periods", { query: { ...query } });
+  listPeriods(
+    query: ListQuery & { status?: PeriodStatus } = {},
+    options?: RequestOptions,
+  ): Promise<ApiPage<PeriodDto>> {
+    return this.http
+      .get<unknown>("/periods", { ...options, query: { ...query } })
+      .then(asPage<PeriodDto>);
   }
 
   closePeriod(periodId: string): Promise<PeriodDto> {

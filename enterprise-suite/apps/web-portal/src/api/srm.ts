@@ -1,7 +1,20 @@
 import type { Money } from "@enterprise-suite/shared-kernel";
 import type { ModuleKey } from "../domain/module.js";
 import type { ApiClient } from "./client.js";
-import { BaseModuleApi, count, percent, type ModuleSummaryDto, type SearchHit } from "./module-api.js";
+import {
+  BaseModuleApi,
+  asPage,
+  composeHits,
+  count,
+  emptyPage,
+  hitSource,
+  moneyValue,
+  percent,
+  statusOf,
+  sumMoney,
+  type ModuleSummaryDto,
+  type SearchHit,
+} from "./module-api.js";
 import type { ApiPage, ListQuery, RequestOptions, RowLike } from "./types.js";
 
 /**
@@ -101,25 +114,6 @@ export interface IssuePurchaseOrderInput {
   readonly incoterm?: string;
 }
 
-function asPage<T>(body: unknown): ApiPage<T> {
-  if (Array.isArray(body)) {
-    return { items: body as T[], page: 1, pageSize: body.length, total: body.length };
-  }
-  if (body && typeof body === "object") {
-    const record = body as Record<string, unknown>;
-    const items = (record.items ?? record.data ?? record.results ?? []) as T[];
-    const list = Array.isArray(items) ? items : [];
-    return {
-      items: list,
-      page: Number(record.page ?? 1),
-      pageSize: Number(record.pageSize ?? list.length),
-      total: Number(record.total ?? list.length),
-      nextCursor: typeof record.nextCursor === "string" ? record.nextCursor : undefined,
-    };
-  }
-  return { items: [], page: 1, pageSize: 0, total: 0 };
-}
-
 export class SrmApi extends BaseModuleApi {
   readonly module: ModuleKey = "srm";
   private readonly procurement: ApiClient;
@@ -132,12 +126,24 @@ export class SrmApi extends BaseModuleApi {
   override async summary(options?: RequestOptions): Promise<ModuleSummaryDto> {
     const [suppliers, requisitions, orders] = await Promise.all([
       this.listSuppliers({ pageSize: 100 }, options),
-      this.listRequisitions({ pageSize: 100 }, options).catch(() => asPage<RequisitionDto>([])),
-      this.listPurchaseOrders({ pageSize: 100 }, options).catch(() => asPage<PurchaseOrderDto>([])),
+      this.listRequisitions({ pageSize: 100 }, options).catch(() => emptyPage<RequisitionDto>()),
+      this.listPurchaseOrders({ pageSize: 100 }, options).catch(() => emptyPage<PurchaseOrderDto>()),
     ]);
-    const approved = suppliers.items.filter((s) => /approved|active|conditional/i.test(String(s.status))).length;
-    const openReq = requisitions.items.filter((r) => !/rejected|closed|cancelled/i.test(String(r.status))).length;
-    const openPo = orders.items.filter((o) => !/closed|cancelled/i.test(String(o.status))).length;
+
+    const approved = suppliers.items.filter((s) =>
+      ["approved", "active", "conditional"].includes(statusOf(s)),
+    ).length;
+    const openReq = requisitions.items.filter(
+      (r) => !["rejected", "closed", "cancelled"].includes(statusOf(r)),
+    ).length;
+    const openOrders = orders.items.filter(
+      (o) => !["received", "closed", "cancelled"].includes(statusOf(o)),
+    );
+    const committedSpend = sumMoney(openOrders.map((o) => o.total));
+    const delivery = suppliers.items
+      .map((s) => s.onTimeDeliveryPct)
+      .filter((value): value is number => typeof value === "number");
+
     return {
       module: "srm",
       asOf: new Date().toISOString(),
@@ -145,8 +151,15 @@ export class SrmApi extends BaseModuleApi {
         suppliers: count(suppliers.total),
         approvedSuppliers: count(approved),
         openRequisitions: count(openReq),
-        openPurchaseOrders: count(openPo),
-        approvalRate: percent(suppliers.total ? Math.round((approved / suppliers.total) * 100) : 0),
+        openPurchaseOrders: count(openOrders.length),
+        ...(committedSpend ? { committedSpend: moneyValue(committedSpend) } : {}),
+        ...(delivery.length > 0
+          ? {
+              onTimeDelivery: percent(
+                delivery.reduce((sum, value) => sum + value, 0) / delivery.length,
+              ),
+            }
+          : {}),
       },
     };
   }
@@ -167,24 +180,51 @@ export class SrmApi extends BaseModuleApi {
       case "contracts":
         return (await this.listContracts(query, options)) as unknown as ApiPage<RowLike>;
       default:
-        return asPage<RowLike>([]);
+        return super.list(resource, query, options);
     }
   }
 
   override async search(term: string, limit = 5, options?: RequestOptions): Promise<readonly SearchHit[]> {
-    const q = term.trim().toLowerCase();
-    if (!q) return [];
-    const suppliers = await this.listSuppliers({ pageSize: 50 }, options);
-    return suppliers.items
-      .filter((s) => `${s.code} ${s.name}`.toLowerCase().includes(q))
-      .slice(0, limit)
-      .map((s) => ({
-        module: "srm" as const,
-        id: s.id,
-        title: s.name,
-        subtitle: `${s.code} · ${s.status}`,
-        path: "/modules/srm/suppliers",
-      }));
+    if (!term.trim()) return [];
+    const [suppliers, orders, contracts] = await Promise.all([
+      this.listSuppliers({ pageSize: 50 }, options),
+      this.listPurchaseOrders({ pageSize: 50 }, options).catch(() => emptyPage<PurchaseOrderDto>()),
+      this.listContracts({ pageSize: 50 }, options).catch(() => emptyPage<ContractDto>()),
+    ]);
+    return composeHits("srm", term, limit, [
+      hitSource({
+        slug: "suppliers",
+        rows: suppliers.items,
+        fields: ["code", "name", "country", "status"],
+        title: (row) => `${row.code} · ${row.name}`,
+        subtitle: (row) => `Supplier · ${row.status}`,
+      }),
+      hitSource({
+        slug: "purchase-orders",
+        rows: orders.items,
+        fields: ["number", "orderNumber", "supplierName", "status"],
+        title: (row) => `${row.number ?? row.orderNumber ?? row.id} · ${row.supplierName ?? ""}`,
+        subtitle: (row) => `Purchase order · ${row.status}`,
+      }),
+      hitSource({
+        slug: "contracts",
+        rows: contracts.items,
+        fields: ["reference", "contractNumber", "supplierName", "type"],
+        title: (row) => row.reference ?? row.contractNumber ?? row.id,
+        subtitle: (row) => `Contract · ${row.supplierName ?? row.supplierId}`,
+      }),
+    ]);
+  }
+
+  /** Declared module actions post to the owning service's real routes. */
+  override command(slug: string, body: unknown, idempotencyKey?: string): Promise<unknown> {
+    switch (slug) {
+      case "requisitions":
+      case "purchase-orders":
+        return this.procurement.post<unknown>(`/${slug}`, { body, idempotencyKey });
+      default:
+        return super.command(slug, body, idempotencyKey);
+    }
   }
 
   listSuppliers(

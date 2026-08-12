@@ -179,14 +179,14 @@ export const buildPrmFixture: FixtureBuilder = (ctx) => {
         subtitle: (row) => `Partner · ${row.tier}`,
       }),
       resource<DealRegistrationDto>({
-        slug: "deals",
+        slug: "deal-registrations",
         rows: deals,
         searchable: ["reference", "partnerName", "customerName", "status"],
         title: (row) => `${row.reference} · ${row.customerName}`,
         subtitle: (row) => `Deal registration · ${row.partnerName}`,
       }),
       resource<MdfRequestDto>({
-        slug: "mdf-requests",
+        slug: "mdf/requests",
         rows: mdfRequests,
         searchable: ["reference", "partnerName", "activity", "status"],
         title: (row) => `${row.reference} · ${row.partnerName}`,
