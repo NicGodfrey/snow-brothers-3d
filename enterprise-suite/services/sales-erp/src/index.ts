@@ -1,0 +1,12 @@
+export * from "./kernel/index.js";
+export * from "./domain/index.js";
+export * from "./application/index.js";
+export { createSalesModule, type SalesModule } from "./infrastructure/container.js";
+export { SystemClock, FixedClock } from "./infrastructure/clock.js";
+export { InMemoryOutbox } from "./infrastructure/memory/outbox.js";
+export { InMemoryRepository } from "./infrastructure/memory/in-memory-repository.js";
+export * from "./infrastructure/memory/repositories.js";
+export { Router, respond, type RouteHandler, type RouteRequest, type RouteResponse } from "./http/router.js";
+export { buildRouter, buildServer } from "./http/server.js";
+export { contextFromRequest, UnauthorizedError } from "./http/context.js";
+export { seedDemoData, SEED_SKUS, type SeedRefs } from "./fixtures/seed.js";
