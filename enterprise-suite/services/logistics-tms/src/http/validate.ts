@@ -33,36 +33,52 @@ export function optId(obj: Record<string, unknown>, field: string): Ulid | undef
   return value === undefined ? undefined : brand<string, "Ulid">(value);
 }
 
-export function reqString(obj: Record<string, unknown>, field: string): string {
+export function reqString(
+  obj: Record<string, unknown>,
+  field: string,
+  label = field,
+): string {
   const value = obj[field];
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new DomainError(`${field} is required and must be a non-empty string`, "VALIDATION");
+    throw new DomainError(`${label} is required and must be a non-empty string`, "VALIDATION");
   }
   return value;
 }
 
-export function optString(obj: Record<string, unknown>, field: string): string | undefined {
+export function optString(
+  obj: Record<string, unknown>,
+  field: string,
+  label = field,
+): string | undefined {
   const value = obj[field];
   if (value === undefined || value === null) return undefined;
   if (typeof value !== "string") {
-    throw new DomainError(`${field} must be a string`, "VALIDATION");
+    throw new DomainError(`${label} must be a string`, "VALIDATION");
   }
   return value;
 }
 
-export function reqNumber(obj: Record<string, unknown>, field: string): number {
+export function reqNumber(
+  obj: Record<string, unknown>,
+  field: string,
+  label = field,
+): number {
   const value = obj[field];
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new DomainError(`${field} is required and must be a number`, "VALIDATION");
+    throw new DomainError(`${label} is required and must be a number`, "VALIDATION");
   }
   return value;
 }
 
-export function optNumber(obj: Record<string, unknown>, field: string): number | undefined {
+export function optNumber(
+  obj: Record<string, unknown>,
+  field: string,
+  label = field,
+): number | undefined {
   const value = obj[field];
   if (value === undefined || value === null) return undefined;
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new DomainError(`${field} must be a number`, "VALIDATION");
+    throw new DomainError(`${label} must be a number`, "VALIDATION");
   }
   return value;
 }
