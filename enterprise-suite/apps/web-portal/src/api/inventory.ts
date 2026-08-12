@@ -7,9 +7,11 @@ import {
   composeHits,
   count,
   emptyPage,
+  emptyPageOnNotFound,
   hitSource,
   moneyValue,
   sumMoney,
+  undefinedOnNotFound,
   type ModuleSummaryDto,
   type SearchHit,
 } from "./module-api.js";
@@ -97,15 +99,16 @@ export class InventoryApi extends BaseModuleApi {
   }
 
   override async summary(options?: RequestOptions): Promise<ModuleSummaryDto> {
-    const [stock, replenishment] = await Promise.all([
-      this.listStock({ pageSize: 100 }, options),
+    const [stock, replenishment, warehouses] = await Promise.all([
+      this.listStock({ pageSize: 100 }, options).catch(undefinedOnNotFound),
       this.listReplenishment({ pageSize: 100 }, options).catch(() => undefined),
+      this.listWarehouses({ pageSize: 100 }, options).catch(() => undefined),
     ]);
 
-    const stockValue = sumMoney(stock.items.map((row) => row.value));
+    const stockValue = stock ? sumMoney(stock.items.map((row) => row.value)) : undefined;
     const belowReorder =
       replenishment?.total ??
-      stock.items.filter((row) => {
+      stock?.items.filter((row) => {
         const reorderPoint = (row as { reorderPoint?: unknown }).reorderPoint;
         return typeof reorderPoint === "number" && row.available < reorderPoint;
       }).length;
@@ -115,8 +118,9 @@ export class InventoryApi extends BaseModuleApi {
       asOf: new Date().toISOString(),
       metrics: {
         ...(stockValue ? { stockValue: moneyValue(stockValue) } : {}),
-        belowReorder: count(belowReorder),
-        skusTracked: count(stock.total),
+        ...(belowReorder !== undefined ? { belowReorder: count(belowReorder) } : {}),
+        ...(stock ? { skusTracked: count(stock.total) } : {}),
+        ...(warehouses ? { warehouses: count(warehouses.total) } : {}),
       },
     };
   }
@@ -143,7 +147,7 @@ export class InventoryApi extends BaseModuleApi {
   override async search(term: string, limit = 5, options?: RequestOptions): Promise<readonly SearchHit[]> {
     if (!term.trim()) return [];
     const [stock, movements] = await Promise.all([
-      this.listStock({ pageSize: 50 }, options),
+      this.listStock({ pageSize: 50 }, options).catch(emptyPageOnNotFound<StockRowDto>),
       this.listMovements({ pageSize: 50 }, options).catch(() => emptyPage<MovementDto>()),
     ]);
     return composeHits("inventory", term, limit, [
@@ -171,6 +175,12 @@ export class InventoryApi extends BaseModuleApi {
     return this.http
       .get<unknown>("/stock", { ...options, query: { ...query } })
       .then(asPage<StockRowDto>);
+  }
+
+  listWarehouses(query: ListQuery = {}, options?: RequestOptions): Promise<ApiPage<RowLike>> {
+    return this.http
+      .get<unknown>("/warehouses", { ...options, query: { ...query } })
+      .then(asPage<RowLike>);
   }
 
   getStockForSku(sku: string, warehouse?: string): Promise<readonly StockRowDto[]> {

@@ -2,7 +2,7 @@ import type { Money } from "@enterprise-suite/shared-kernel";
 import type { ModuleKey } from "../domain/module.js";
 import type { KpiValue } from "../domain/kpi.js";
 import type { ApiClient } from "./client.js";
-import type { ApiPage, ListQuery, RequestOptions, RowLike } from "./types.js";
+import { ApiError, type ApiPage, type ListQuery, type RequestOptions, type RowLike } from "./types.js";
 
 /**
  * The contract the shell relies on for *every* module, on top of each client's
@@ -116,6 +116,22 @@ export function asPage<T>(body: unknown): ApiPage<T> {
 
 export function emptyPage<T>(): ApiPage<T> {
   return { items: [], page: 1, pageSize: 0, total: 0 };
+}
+
+/**
+ * For optional sources in a composed summary: a missing route (404) means the
+ * gateway does not expose the resource yet and is tolerated; anything else
+ * (403, 5xx, timeouts) still fails the module so the tile reports honestly.
+ */
+export function undefinedOnNotFound(error: unknown): undefined {
+  if (error instanceof ApiError && error.kind === "not-found") return undefined;
+  throw error;
+}
+
+/** Same policy as {@link undefinedOnNotFound}, for sources folded into search. */
+export function emptyPageOnNotFound<T>(error: unknown): ApiPage<T> {
+  if (error instanceof ApiError && error.kind === "not-found") return emptyPage<T>();
+  throw error;
 }
 
 function isMoney(value: unknown): value is Money {

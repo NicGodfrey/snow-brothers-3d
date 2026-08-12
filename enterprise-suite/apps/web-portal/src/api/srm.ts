@@ -38,7 +38,9 @@ export type PurchaseOrderStatus =
 export interface SupplierDto {
   readonly id: string;
   readonly code: string;
-  readonly name: string;
+  readonly name?: string;
+  /** The live srm-core service names suppliers by `legalName`. */
+  readonly legalName?: string;
   readonly country?: string;
   readonly status: SupplierStatus;
   readonly scorecard?: number;
@@ -60,6 +62,7 @@ export interface RequisitionDto {
   readonly id: string;
   readonly number?: string;
   readonly requisitionNumber?: string;
+  readonly title?: string;
   readonly requestedBy?: string;
   readonly costCenter?: string;
   readonly status: RequisitionStatus;
@@ -186,8 +189,9 @@ export class SrmApi extends BaseModuleApi {
 
   override async search(term: string, limit = 5, options?: RequestOptions): Promise<readonly SearchHit[]> {
     if (!term.trim()) return [];
-    const [suppliers, orders, contracts] = await Promise.all([
+    const [suppliers, requisitions, orders, contracts] = await Promise.all([
       this.listSuppliers({ pageSize: 50 }, options),
+      this.listRequisitions({ pageSize: 50 }, options).catch(() => emptyPage<RequisitionDto>()),
       this.listPurchaseOrders({ pageSize: 50 }, options).catch(() => emptyPage<PurchaseOrderDto>()),
       this.listContracts({ pageSize: 50 }, options).catch(() => emptyPage<ContractDto>()),
     ]);
@@ -195,9 +199,16 @@ export class SrmApi extends BaseModuleApi {
       hitSource({
         slug: "suppliers",
         rows: suppliers.items,
-        fields: ["code", "name", "country", "status"],
-        title: (row) => `${row.code} · ${row.name}`,
+        fields: ["code", "name", "legalName", "country", "status"],
+        title: (row) => `${row.code} · ${row.name ?? row.legalName ?? row.id}`,
         subtitle: (row) => `Supplier · ${row.status}`,
+      }),
+      hitSource({
+        slug: "requisitions",
+        rows: requisitions.items,
+        fields: ["number", "requisitionNumber", "title", "costCenter", "status"],
+        title: (row) => `${row.number ?? row.requisitionNumber ?? row.id} · ${row.title ?? row.costCenter ?? ""}`,
+        subtitle: (row) => `Requisition · ${row.status}`,
       }),
       hitSource({
         slug: "purchase-orders",
