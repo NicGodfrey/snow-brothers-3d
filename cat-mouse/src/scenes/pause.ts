@@ -14,7 +14,8 @@ export class PauseScene implements Scene {
   }
 
   enter(ctx: SceneContext): void {
-    this.readyAt = ctx.clock.elapsed + 0.16;
+    this.readyAt = ctx.clock.elapsed + 0.22;
+    this.app.overlay.showHud();
     this.menu = new Menu(
       {
         kicker: 'Paused',
@@ -52,7 +53,7 @@ export class PauseScene implements Scene {
   render(ctx: SceneContext): void {
     const { renderer, width, height } = ctx;
     renderer.begin(screenCamera(width, height));
-    renderer.rect(0, 0, width, height, 'rgba(8,4,2,0.45)');
+    renderer.rect(0, 0, width, height, '#140c0880');
     renderer.end();
   }
 }

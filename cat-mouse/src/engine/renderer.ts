@@ -296,6 +296,9 @@ export class CanvasRenderer implements RendererLike {
     const lightCanvas = this.lightCanvas;
     if (!lightCtx || !lightCanvas || this.lights.length === 0 && this.ambient >= 1) return;
     lightCtx.setTransform(1, 0, 0, 1, 0, 0);
+    // The light surface persists across frames; without clearing it the
+    // darkness fill below stacks and the scene fades to solid black.
+    lightCtx.clearRect(0, 0, lightCanvas.width, lightCanvas.height);
     lightCtx.globalCompositeOperation = 'source-over';
     const darkness = 1 - this.ambient;
     lightCtx.fillStyle = `rgba(0, 0, 0, ${darkness})`;

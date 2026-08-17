@@ -1,33 +1,15 @@
 import type { Scene, SceneContext } from '../engine/types';
 import type { ChapterDef } from '../content/schema';
+import { CHAPTERS } from '../content/chapters';
+import { stageById, stagesOfChapter } from '../content/registry';
 import type { App } from '../app';
 import { Menu, menuBack, type MenuItem } from '../ui/menus';
 import { screenCamera } from './boot';
 
-const STAGE_NAMES = [
-  'Midnight Crumbs',
-  'The Warm Stove',
-  'Pantry Run',
-  'Drip Tray',
-  'Chair Legs',
-  'Open Oven',
-  "Gran's Slippers",
-  'The Night Plate',
-];
-
 export class ChapterMapScene implements Scene {
   readonly name = 'chapterMap';
   private readonly app: App;
-  private chapters: ChapterDef[] = [
-    {
-      index: 1,
-      title: 'The Kitchen',
-      theme: 'kitchen',
-      blurb: 'Gran left the light on. The plate is still warm.',
-      stageIds: Array.from({ length: 8 }, (_, i) => `story-01-0${i + 1}`),
-      unlockAfter: 0,
-    },
-  ];
+  private chapters: ChapterDef[] = CHAPTERS.slice();
   private chapterIndex = 0;
   private stageIndex = 0;
   private focus: 'chapter' | 'stage' = 'stage';
@@ -114,13 +96,14 @@ export class ChapterMapScene implements Scene {
             },
           }))
         : this.stageLabels(chapter).map((name, i) => ({
-            id: `st-${i + 1}`,
+            id: chapter?.stageIds[i] ?? `st-${i + 1}`,
             label: name,
             action: () => {
               this.stageIndex = i;
-              this.app.chapter = (chapter?.index ?? 1);
+              this.app.chapter = chapter?.index ?? 1;
               this.app.stageIndex = i + 1;
-              void this.app.goPlay(this.app.chapter, this.app.stageIndex);
+              const id = chapter?.stageIds[i];
+              void this.app.goPlay(this.app.chapter, this.app.stageIndex, id);
             },
           }));
 
@@ -130,7 +113,7 @@ export class ChapterMapScene implements Scene {
         title: 'Chapter Map',
         blurb: chapter?.blurb ?? 'Choose a kitchen to raid.',
         extra,
-        hint: 'Left/right switch lists · Enter play stage 1 of chapter 1',
+        hint: 'Left/right switch lists · Enter plays the highlighted stage',
       },
       items,
       this.focus === 'chapter' ? this.chapterIndex : this.stageIndex,
@@ -139,12 +122,17 @@ export class ChapterMapScene implements Scene {
   }
 
   private stageLabels(chapter: ChapterDef | undefined): string[] {
-    const ids = chapter?.stageIds ?? [];
-    if (ids.length === 0) return STAGE_NAMES.map((name, i) => `${i + 1}. ${name}`);
-    return ids.map((id, i) => {
+    if (!chapter) return [];
+    const authored = stagesOfChapter(chapter.index);
+    if (authored.length > 0) {
+      return authored.map((stage, i) => `${i + 1}. ${stage.name}`);
+    }
+    return chapter.stageIds.map((id, i) => {
+      const named = stageById(id);
+      if (named) return `${i + 1}. ${named.name}`;
       const tail = id.split('-').slice(2).join(' ').replace(/-/g, ' ');
       const pretty = tail.replace(/\b\w/g, (ch) => ch.toUpperCase());
-      return `${i + 1}. ${pretty || STAGE_NAMES[i] || `Stage ${i + 1}`}`;
+      return `${i + 1}. ${pretty || `Stage ${i + 1}`}`;
     });
   }
 

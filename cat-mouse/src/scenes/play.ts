@@ -75,6 +75,7 @@ export class PlayScene implements Scene {
   private invulnerable = 0;
   private lives: number;
   private cheeseBanked = 0;
+  private quota: number;
   private cheeseCarried = 0;
   private heat = 0;
   private timeSeconds = 0;
@@ -94,6 +95,7 @@ export class PlayScene implements Scene {
     const catPos = catSpawn ? worldOf(stage, catSpawn.x, catSpawn.y) : { x: spawn.x + 200, y: spawn.y };
     this.cat = { x: catPos.x, y: catPos.y, vx: 0, vy: 0, radius: 14 };
     this.lives = stage.lives;
+    this.quota = Math.max(0, stage.quota);
     this.stamina = 100;
     this.pickups = stage.entities
       .filter((e) => e.type === 'cheese')
@@ -113,6 +115,18 @@ export class PlayScene implements Scene {
     window.setTimeout(() => this.app.overlay.setBanner(null), 2800);
     this.syncHud();
     ctx.audio.setListener(this.mouse.x, this.mouse.y);
+  }
+
+  pause(): void {
+    const raw = this.simulation?.raw as { paused?: boolean } | undefined;
+    if (raw) raw.paused = true;
+  }
+
+  resume(): void {
+    const raw = this.simulation?.raw as { paused?: boolean } | undefined;
+    if (raw) raw.paused = false;
+    this.app.overlay.showHud();
+    this.app.overlay.clearMenu();
   }
 
   exit(): void {
@@ -154,10 +168,11 @@ export class PlayScene implements Scene {
     renderer.rect(this.cat.x - 14, this.cat.y - 12, 28, 24, catColor(this.catState));
     for (const light of this.stage.lights) {
       const p = worldOf(this.stage, light.x, light.y);
+      const radius = light.radius <= this.stage.width + 2 ? light.radius * this.stage.tileSize : light.radius;
       renderer.light({
         x: p.x,
         y: p.y,
-        radius: light.radius,
+        radius,
         intensity: light.intensity,
         color: light.color ?? '#ffc070',
       });
@@ -264,9 +279,14 @@ export class PlayScene implements Scene {
   private pullSimulation(): void {
     const raw = this.simulation?.raw;
     if (!raw) return;
-    const mouse = firstRecord(raw, ['mouse', 'mouseRuntime']);
-    const cat = firstRecord(raw, ['cat', 'catRuntime']) ?? firstArrayItem(raw, ['cats', 'catRuntimes']);
-    const score = firstRecord(raw, ['score', 'scoreState']);
+    const bag = asRecord(raw.stage) ?? raw;
+    const mouse = firstRecord(bag, ['mouse', 'mouseRuntime']) ?? firstRecord(raw, ['mouse', 'mouseRuntime']);
+    const cat =
+      firstRecord(bag, ['cat', 'catRuntime']) ??
+      firstArrayItem(bag, ['cats', 'catRuntimes']) ??
+      firstRecord(raw, ['cat', 'catRuntime']) ??
+      firstArrayItem(raw, ['cats', 'catRuntimes']);
+    const score = firstRecord(bag, ['score', 'scoreState']) ?? firstRecord(raw, ['score', 'scoreState']);
     if (mouse) {
       const t = (mouse.transform as Actor | undefined) ?? mouse;
       if (typeof t.x === 'number' && typeof t.y === 'number') {
@@ -290,7 +310,7 @@ export class PlayScene implements Scene {
       }
       if (typeof cat.state === 'string') this.catState = cat.state as CatState;
     }
-    const cheeses = raw.cheeses;
+    const cheeses = bag.cheeses ?? raw.cheeses;
     if (Array.isArray(cheeses)) {
       this.pickups = cheeses.map((item) => {
         const rec = item as Record<string, unknown>;
@@ -300,6 +320,8 @@ export class PlayScene implements Scene {
     }
     if (score) {
       if (typeof score.cheeseBanked === 'number') this.cheeseBanked = score.cheeseBanked;
+      if (typeof score.cheeseCarried === 'number') this.cheeseCarried = score.cheeseCarried;
+      if (typeof score.quota === 'number' && score.quota > 0) this.quota = score.quota;
       if (typeof score.heat === 'number') this.heat = score.heat;
       if (typeof score.timeSeconds === 'number') this.timeSeconds = score.timeSeconds;
       if (typeof score.catches === 'number') this.catches = score.catches;
@@ -311,7 +333,7 @@ export class PlayScene implements Scene {
       lives: this.lives,
       livesMax: this.stage.lives,
       cheeseBanked: this.cheeseBanked,
-      quota: this.stage.quota,
+      quota: this.quota > 0 ? this.quota : this.stage.quota,
       cheeseCarried: this.cheeseCarried,
       stamina: this.stamina,
       staminaMax: staminaMaxOf(this.simulation?.raw) ?? 100,
@@ -323,8 +345,13 @@ export class PlayScene implements Scene {
 
   private checkOutcome(): void {
     const raw = this.simulation?.raw;
-    const outcome = raw && typeof raw.outcome === 'string' ? raw.outcome : null;
-    if (outcome === 'won' || (this.stage.quota > 0 && this.cheeseBanked >= this.stage.quota)) {
+    const loaded = asRecord(raw?.stage);
+    const outcome =
+      (raw && typeof raw.outcome === 'string' && raw.outcome) ||
+      (loaded && typeof loaded.outcome === 'string' && loaded.outcome) ||
+      null;
+    const quota = this.quota > 0 ? this.quota : this.stage.quota;
+    if (outcome === 'won' || (quota > 0 && this.cheeseBanked >= quota && this.timeSeconds > 0.2)) {
       this.finish('won');
       return;
     }
@@ -340,7 +367,7 @@ export class PlayScene implements Scene {
       score: this.cheeseBanked * 250 + Math.max(0, 120 - Math.floor(this.timeSeconds)) * 4,
       timeSeconds: this.timeSeconds,
       cheeseBanked: this.cheeseBanked,
-      quota: this.stage.quota,
+      quota: this.quota > 0 ? this.quota : this.stage.quota,
       catches: this.catches,
       stars: outcome === 'won' ? (this.catches === 0 ? 3 : this.catches === 1 ? 2 : 1) : 0,
       noCatch: this.catches === 0 && outcome === 'won',
@@ -459,6 +486,11 @@ function moveAgainstTiles(
   return { x, y };
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, unknown>;
+  return null;
+}
+
 function firstRecord(raw: Record<string, unknown>, keys: string[]): Record<string, unknown> | null {
   for (const key of keys) {
     const value = raw[key];
@@ -482,7 +514,9 @@ function simLength(stage: StageDef, x: number, length: number): number {
 }
 
 function staminaMaxOf(raw: Record<string, unknown> | undefined): number | null {
-  const mouse = raw ? firstRecord(raw, ['mouse', 'mouseRuntime']) : null;
+  if (!raw) return null;
+  const bag = asRecord(raw.stage) ?? raw;
+  const mouse = firstRecord(bag, ['mouse', 'mouseRuntime']) ?? firstRecord(raw, ['mouse', 'mouseRuntime']);
   const stats = mouse?.stats as { staminaMax?: number } | undefined;
   return typeof stats?.staminaMax === 'number' ? stats.staminaMax : null;
 }

@@ -21,6 +21,14 @@ import type {
 } from './engine/types';
 import type { GameMode, SimulationOptions, StageResult } from './game/types';
 import type { ChapterDef, StageDef } from './content/schema';
+import { CHAPTERS } from './content/chapters';
+import {
+  ARCADE_STAGES,
+  TIME_ATTACK_STAGES,
+  findStage,
+  stageById,
+} from './content/registry';
+import { createSimulation, type GameSimulation } from './game/simulation';
 import { Hud } from './ui/hud';
 import { Overlay } from './ui/overlay';
 import { BootScene } from './scenes/boot';
@@ -42,8 +50,6 @@ declare global {
 }
 
 const ENGINE_MODULES = import.meta.glob('./engine/*.ts');
-const GAME_MODULES = import.meta.glob('./game/**/*.ts');
-const CONTENT_MODULES = import.meta.glob('./content/**/*.ts');
 
 const SETTINGS_KEY = 'chase-protocol-settings';
 
@@ -110,6 +116,7 @@ export class App {
   mode: GameMode = 'story';
   chapter = 1;
   stageIndex = 1;
+  stageId = 'ch01-s01-crumb-trail';
   lastResult: StageResult | null = null;
   private readonly stack: Scene[] = [];
   private clock: Clock;
@@ -192,6 +199,7 @@ export class App {
     this.mode = 'story';
     this.chapter = 1;
     this.stageIndex = 1;
+    this.stageId = CHAPTERS[0]?.stageIds[0] ?? 'ch01-s01-crumb-trail';
   }
 
   goTitle(): void {
@@ -210,23 +218,23 @@ export class App {
   }
 
   listChapters(): Promise<ChapterDef[]> {
-    return loadChapters();
+    return Promise.resolve(CHAPTERS.slice());
   }
 
-  async goPlay(chapter = this.chapter, index = this.stageIndex): Promise<void> {
+  async goPlay(chapter = this.chapter, index = this.stageIndex, stageId?: string): Promise<void> {
     if (this.navigating) return;
     this.navigating = true;
     this.chapter = chapter;
     this.stageIndex = index;
     try {
-      const stage = await resolveStage(chapter, index, this.mode);
-      const simulation = await resolveSimulation(stage, {
+      const stage = resolveStage(chapter, index, this.mode, stageId);
+      this.stageId = stage.id;
+      const simulation = resolveSimulation(stage, {
         rng: this.rng,
         mode: this.mode,
         difficulty: stage.difficulty,
         seed: stage.seed,
-        events: this.events,
-      } as SimulationOptions);
+      });
       this.overlay.clearMenu();
       this.overlay.showHud();
       this.replace(new PlayScene(this, stage, simulation));
@@ -258,18 +266,20 @@ export class App {
   }
 
   restartStage(): void {
-    void this.goPlay(this.chapter, this.stageIndex);
+    void this.goPlay(this.chapter, this.stageIndex, this.stageId);
   }
 
   nextStage(): void {
+    const ids = CHAPTERS[this.chapter - 1]?.stageIds ?? [];
     const next = this.stageIndex + 1;
-    if (next > 8) {
+    if (next > ids.length) {
       this.chapter += 1;
       this.stageIndex = 1;
+      this.stageId = CHAPTERS[this.chapter - 1]?.stageIds[0] ?? this.stageId;
       this.goChapterMap();
       return;
     }
-    void this.goPlay(this.chapter, next);
+    void this.goPlay(this.chapter, next, ids[next - 1]);
   }
 
   pop(): void {
@@ -504,75 +514,33 @@ function wrapEngineInput(raw: Record<string, unknown>): InputService {
   };
 }
 
-export async function resolveStage(chapter: number, index: number, mode: GameMode): Promise<StageDef> {
-  const loaded = await loadContentModules();
-  for (const mod of loaded) {
-    const stage = findStageInModule(mod, chapter, index, mode);
-    if (stage) return stage;
+export function resolveStage(chapter: number, index: number, mode: GameMode, stageId?: string): StageDef {
+  if (stageId) {
+    const named = stageById(stageId);
+    if (named) return named;
+  }
+  if (mode === 'arcade') {
+    return ARCADE_STAGES[index - 1] ?? ARCADE_STAGES[0] ?? createFallbackKitchen(chapter, index, mode);
+  }
+  if (mode === 'timeAttack') {
+    return TIME_ATTACK_STAGES[index - 1] ?? TIME_ATTACK_STAGES[0] ?? createFallbackKitchen(chapter, index, mode);
+  }
+  const fromRegistry = findStage(chapter, index);
+  if (fromRegistry) return fromRegistry;
+  const id = CHAPTERS[chapter - 1]?.stageIds[index - 1];
+  if (id) {
+    const byId = stageById(id);
+    if (byId) return byId;
+  }
+  if (chapter === 1 && index === 1) {
+    const crumb = stageById('ch01-s01-crumb-trail');
+    if (crumb) return crumb;
   }
   return createFallbackKitchen(chapter, index, mode);
 }
 
-export async function loadChapters(): Promise<ChapterDef[]> {
-  const loaded = await loadContentModules();
-  for (const mod of loaded) {
-    const chapters = mod.chapters ?? mod.CHAPTERS ?? mod.chapterDefs;
-    if (Array.isArray(chapters) && chapters.length > 0 && isChapter(chapters[0])) {
-      return chapters as ChapterDef[];
-    }
-  }
-  return fallbackChapters();
-}
-
-async function loadContentModules(): Promise<Record<string, unknown>[]> {
-  const out: Record<string, unknown>[] = [];
-  for (const [key, loader] of Object.entries(CONTENT_MODULES)) {
-    if (key.endsWith('schema.ts')) continue;
-    try {
-      out.push(await loader());
-    } catch {
-      /* skip broken content while other agents write */
-    }
-  }
-  return out;
-}
-
-function findStageInModule(
-  mod: Record<string, unknown>,
-  chapter: number,
-  index: number,
-  mode: GameMode,
-): StageDef | null {
-  const candidates: unknown[] = [];
-  for (const value of Object.values(mod)) {
-    if (isStageDef(value)) candidates.push(value);
-    if (Array.isArray(value)) {
-      for (const item of value) if (isStageDef(item)) candidates.push(item);
-    }
-    if (value && typeof value === 'object') {
-      const rec = value as Record<string, unknown>;
-      if (typeof rec.get === 'function') {
-        try {
-          const got = rec.get(`${chapter}-${index}`) ?? rec.get(`story-0${chapter}-0${index}`);
-          if (isStageDef(got)) candidates.push(got);
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  }
-  const kind = mode === 'timeAttack' ? 'timeAttack' : mode === 'arcade' ? 'arcade' : 'story';
-  for (const value of candidates) {
-    const stage = value as StageDef;
-    if (stage.chapter === chapter && stage.index === index && (stage.kind === kind || kind === 'story')) {
-      return stage;
-    }
-  }
-  for (const value of candidates) {
-    const stage = value as StageDef;
-    if (stage.chapter === chapter && stage.index === index) return stage;
-  }
-  return null;
+export function loadChapters(): Promise<ChapterDef[]> {
+  return Promise.resolve(CHAPTERS.slice());
 }
 
 export function isStageDef(value: unknown): value is StageDef {
@@ -581,51 +549,24 @@ export function isStageDef(value: unknown): value is StageDef {
   return Array.isArray(s.tiles) && typeof s.width === 'number' && typeof s.height === 'number' && !!s.spawn;
 }
 
-function isChapter(value: unknown): value is ChapterDef {
-  if (!value || typeof value !== 'object') return false;
-  const c = value as ChapterDef;
-  return typeof c.index === 'number' && typeof c.title === 'string' && Array.isArray(c.stageIds);
-}
-
-export async function resolveSimulation(
-  stage: StageDef,
-  options: SimulationOptions,
-): Promise<SimulationHandle | null> {
-  const gameEntries = Object.entries(GAME_MODULES).sort(([a], [b]) => {
-    const score = (key: string) => (key.includes('simulation') ? 0 : key.includes('sim') ? 1 : 2);
-    return score(a) - score(b);
-  });
-  for (const [key, loader] of gameEntries) {
-    const file = key.split('/').pop() ?? '';
-    if (file === 'types.ts' || file === 'defaults.ts') continue;
-    try {
-      const mod = await loader();
-      const handle = simulationFromModule(mod, stage, options);
-      if (handle) return handle;
-    } catch {
-      /* keep looking */
-    }
+export function resolveSimulation(stage: StageDef, options: SimulationOptions): SimulationHandle | null {
+  try {
+    const sim = createSimulation(stage, options);
+    return wrapGameSimulation(sim);
+  } catch {
+    /* glob fallback if the typed factory throws during parallel writes */
   }
   return null;
 }
 
-function simulationFromModule(
-  mod: Record<string, unknown>,
-  stage: StageDef,
-  options: SimulationOptions,
-): SimulationHandle | null {
-  const names = ['createSimulation', 'createSim', 'createStage', 'Simulation', 'StageSimulation', 'GameWorld', 'default'];
-  const inst = construct(mod, names, [stage, options]);
-  if (!inst || typeof inst !== 'object') return null;
-  const raw = inst as Record<string, unknown>;
-  const step = raw.step ?? raw.update ?? raw.tick;
-  if (typeof step !== 'function') return null;
+function wrapGameSimulation(sim: GameSimulation): SimulationHandle {
+  const raw = sim as unknown as Record<string, unknown>;
   return {
     raw,
     step(dt: number, input?: InputSnapshot) {
-      if (typeof raw.setInput === 'function') (raw.setInput as (s: InputSnapshot) => void)(input as InputSnapshot);
-      if (typeof raw.applyInput === 'function') (raw.applyInput as (s: InputSnapshot) => void)(input as InputSnapshot);
-      (step as (dt: number, input?: InputSnapshot) => void).call(raw, dt, input);
+      if (sim.paused) return;
+      // Gameplay signature is step(input, dt), not step(dt, input).
+      sim.step(input, dt);
     },
   };
 }

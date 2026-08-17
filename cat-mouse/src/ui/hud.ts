@@ -86,8 +86,10 @@ export class Hud {
       this.livesEl.append(pip);
     }
 
+    const quota = Math.max(0, m.quota);
     const carried = m.cheeseCarried > 0 ? ` +${m.cheeseCarried}` : '';
-    this.cheeseEl.innerHTML = `<strong>${m.cheeseBanked}</strong> / ${m.quota}${carried}`;
+    this.cheeseEl.innerHTML = `<strong>${m.cheeseBanked}</strong> / ${quota}${carried}`;
+    this.cheeseEl.title = `Bank ${quota} cheese`;
 
     const stamina = m.staminaMax > 0 ? m.stamina / m.staminaMax : 0;
     fill(this.staminaEl, stamina);
