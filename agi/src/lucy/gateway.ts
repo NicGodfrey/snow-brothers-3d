@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AgiConfig } from "../config.ts";
+import { TransportError } from "../errors.ts";
 import type { CursorTransport } from "../cursor/types.ts";
 import { AgiError } from "../errors.ts";
 import { formatSse } from "../sse.ts";
@@ -13,14 +14,18 @@ import type {
   LucyJob,
   LucyJobStatus,
   LucySseEvent,
+  LucyTurn,
 } from "./types.ts";
+import { normalizeImages } from "../cursor/images.ts";
 
 interface LiveJob {
   job: LucyJob;
+  request: LucyAskRequest;
   watchdog: StreamWatchdog;
   heartbeat?: ReturnType<typeof setInterval>;
   abort: AbortController;
   listeners: Set<ServerResponse>;
+  failover: boolean;
 }
 
 const TERMINAL: LucyJobStatus[] = ["succeeded", "failed", "aborted"];
@@ -28,6 +33,7 @@ const MAX_JOBS = 500;
 
 export class LucyGateway {
   private readonly jobs = new Map<string, LiveJob>();
+  private readonly transcripts = new Map<string, LucyTurn[]>();
 
   constructor(
     readonly pool: LucyPool,
@@ -71,12 +77,15 @@ export class LucyGateway {
       this.config.lucyPool,
       this.config.transport,
     );
+    const wasPinned = Boolean(this.pool.conversations.get(conversationId));
+    const failover = request.failover ?? (!request.target && !wasPinned);
     const slot = this.pool.acquire({
       pool,
       conversationId,
       target: request.target,
     });
     const fulfill = resolveFulfill(this.config, slot.kind);
+    request.images = normalizeImages(request.images);
     const now = Date.now();
     const job: LucyJob = {
       id: `lucy-${randomUUID()}`,
@@ -93,6 +102,8 @@ export class LucyGateway {
       events: [],
       startedAtMs: now,
       lastModelAtMs: now,
+      imageCount: request.images?.length ?? 0,
+      failover,
     };
     const abort = new AbortController();
     const watchdog = new StreamWatchdog(this.config.streamIdleTimeoutMs, () => {
@@ -104,21 +115,65 @@ export class LucyGateway {
     });
     const live: LiveJob = {
       job,
+      request,
       watchdog,
       abort,
       listeners: new Set(),
+      failover,
     };
     this.jobs.set(job.id, live);
     this.gc();
+    this.recordTurn(conversationId, {
+      role: "user",
+      text: question,
+      jobId: job.id,
+      lucyName: slot.name,
+      at: job.createdAt,
+    });
     this.emit(live, "meta", {
       jobId: job.id,
       conversationId,
       lucy: { name: slot.name, agentId: slot.agentId, kind: slot.kind },
       fulfill,
+      failover,
+      imageCount: job.imageCount,
       idleTimeoutMs: this.config.streamIdleTimeoutMs,
       maxBodyBytes: this.config.maxBodyBytes,
     });
     return job;
+  }
+
+  conversation(id: string): { id: string; items: LucyTurn[] } {
+    const items = this.transcripts.get(id);
+    if (!items) throw new AgiError("unknown_conversation", `Unknown conversation ${id}`, 404);
+    return { id, items };
+  }
+
+  conversations(): { items: { id: string; turns: number }[] } {
+    return {
+      items: [...this.transcripts.entries()].map(([id, items]) => ({
+        id,
+        turns: items.length,
+      })),
+    };
+  }
+
+  async artifacts(jobId: string): Promise<unknown> {
+    const job = this.get(jobId);
+    return this.transport.listArtifacts(job.agentId);
+  }
+
+  async usage(jobId: string): Promise<unknown> {
+    const job = this.get(jobId);
+    return this.transport.getUsage(job.agentId, job.runId);
+  }
+
+  async cancel(jobId: string): Promise<LucyJob> {
+    const live = this.requireRunning(jobId);
+    if (live.job.runId) {
+      await this.transport.cancelRun(live.job.agentId, live.job.runId).catch(() => undefined);
+    }
+    return this.fail(jobId, "cancelled", "Run cancelled by client");
   }
 
   start(jobId: string, conversationMode?: "agent" | "plan"): void {
@@ -135,7 +190,7 @@ export class LucyGateway {
       }, this.config.streamHeartbeatMs);
       live.heartbeat.unref?.();
     }
-    void this.fulfill(live, conversationMode);
+    void this.fulfill(live, conversationMode ?? live.request.conversationMode);
   }
 
   attach(jobId: string, req: IncomingMessage, res: ServerResponse): void {
@@ -150,7 +205,11 @@ export class LucyGateway {
       });
       res.socket?.setNoDelay(true);
     }
+    const lastEventId = String(
+      req.headers["last-event-id"] ?? new URL(req.url ?? "/", "http://local").searchParams.get("lastEventId") ?? "",
+    );
     for (const event of live.job.events) {
+      if (lastEventId && Number(event.id) <= Number(lastEventId)) continue;
       res.write(formatSse(event.event, event.data, event.id));
     }
     if (TERMINAL.includes(live.job.status)) {
@@ -180,6 +239,13 @@ export class LucyGateway {
     if (text) live.job.answer = text;
     live.job.status = "succeeded";
     live.job.updatedAt = new Date().toISOString();
+    this.recordTurn(live.job.conversationId, {
+      role: "assistant",
+      text: live.job.answer,
+      jobId: live.job.id,
+      lucyName: live.job.lucyName,
+      at: live.job.updatedAt,
+    });
     this.emitModel(live, "result", { text: live.job.answer });
     this.finish(live, "succeeded");
     return live.job;
@@ -257,11 +323,7 @@ export class LucyGateway {
     live: LiveJob,
     conversationMode?: "agent" | "plan",
   ): Promise<void> {
-    let run = await this.transport.createRun(
-      live.job.agentId,
-      live.job.question,
-      conversationMode,
-    );
+    let run = await this.createOfficialRun(live, conversationMode);
     while (run.status === "CREATING" && !live.abort.signal.aborted) {
       await sleep(300, live.abort.signal);
       run = await this.transport.getRun(live.job.agentId, run.id);
@@ -290,12 +352,20 @@ export class LucyGateway {
             sawModel = true;
             this.emitModel(live, "thinking", { text });
           }
+        } else if (frame.event === "tool_call") {
+          sawModel = true;
+          this.emitModel(live, "tool_call", asRecord(frame.data));
+        } else if (frame.event === "status") {
+          this.emit(live, "status", asRecord(frame.data));
         } else if (frame.event === "interaction_update") {
           const data = asRecord(frame.data);
+          this.emit(live, "interaction_update", data);
           if (data.type === "token-delta") {
             sawModel = true;
             live.watchdog.touch();
           }
+        } else if (frame.event === "heartbeat") {
+          this.emit(live, "heartbeat", asRecord(frame.data));
         } else if (frame.event === "result") {
           const text = textOf(frame.data) || live.job.answer;
           this.complete(live.job.id, text);
@@ -330,6 +400,54 @@ export class LucyGateway {
       const finished = await this.transport.waitForRun(live.job.agentId, run.id);
       this.complete(live.job.id, finished.result ?? live.job.answer);
     }
+  }
+
+  private async createOfficialRun(
+    live: LiveJob,
+    conversationMode?: "agent" | "plan",
+  ) {
+    const tried = new Set<string>([live.job.agentId, live.job.lucyName]);
+    for (let hop = 0; hop < 8; hop += 1) {
+      try {
+        const run = await this.transport.createRun(
+          live.job.agentId,
+          {
+            prompt: live.job.question,
+            images: live.request.images,
+            mode: conversationMode ?? live.request.conversationMode,
+            mcpServers: live.request.mcpServers,
+          },
+        );
+        live.job.runId = run.id;
+        return run;
+      } catch (error) {
+        const busy =
+          error instanceof TransportError
+            ? error.code === "agent_busy"
+            : /agent_busy/i.test(error instanceof Error ? error.message : String(error));
+        if (!busy || !live.failover || live.job.kind !== "official") throw error;
+        this.pool.release(live.job.lucyName, live.job.kind);
+        const next = this.pool.acquire({
+          pool: "official",
+          conversationId: live.job.conversationId,
+          exclude: [...tried],
+        });
+        tried.add(next.agentId);
+        tried.add(next.name);
+        live.job.lucyName = next.name;
+        live.job.agentId = next.agentId;
+        this.emit(live, "failover", {
+          lucy: { name: next.name, agentId: next.agentId, kind: next.kind },
+        });
+      }
+    }
+    throw new AgiError("no_idle_lucy", "No idle official lucy accepted the run", 503);
+  }
+
+  private recordTurn(conversationId: string, turn: LucyTurn): void {
+    const items = this.transcripts.get(conversationId) ?? [];
+    items.push(turn);
+    this.transcripts.set(conversationId, items);
   }
 
   private emitModel(

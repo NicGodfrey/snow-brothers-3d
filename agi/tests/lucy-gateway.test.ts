@@ -216,6 +216,109 @@ test("official stream retries after stream_unavailable", async () => {
   }
 });
 
+test("busy official lucy failsover to another idle slot", async () => {
+  const { control, server } = await serve({
+    lucyPool: "official",
+    lucyFulfill: "official",
+  });
+  try {
+    const busyId = control.registry.get("lucy02").agentId!;
+    (control.transport as import("../src/cursor/mock.ts").MockCursorClient).busyIds.add(
+      busyId,
+    );
+    const ask = await fetch(`${server.url}/v1/lucy/ask`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        question: "failover please",
+        stream: false,
+        pool: "official",
+        target: "lucy02",
+        failover: true,
+      }),
+    });
+    assert.equal(ask.status, 200);
+    const job = (await ask.json()) as { status: string; lucyName: string };
+    assert.equal(job.status, "succeeded");
+    assert.notEqual(job.lucyName, "lucy02");
+  } finally {
+    await server.close();
+  }
+});
+
+test("lucy cancel, artifacts, and usage hang off the official job", async () => {
+  const { control, server } = await serve({
+    lucyPool: "official",
+    lucyFulfill: "official",
+  });
+  try {
+    const transport = control.transport as import("../src/cursor/mock.ts").MockCursorClient;
+    transport.autoFinish = false;
+    transport.holdStream = true;
+    transport.latencyMs = 0;
+    const askP = fetch(`${server.url}/v1/lucy/ask`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        question: "cancel me",
+        pool: "official",
+        conversationId: "conv-cancel",
+      }),
+    });
+    await sleep(20);
+    const jobs = (await (await fetch(`${server.url}/v1/lucy/jobs`)).json()) as {
+      items: { id: string }[];
+    };
+    const id = jobs.items[0]!.id;
+    const artifacts = await fetch(`${server.url}/v1/lucy/jobs/${id}/artifacts`);
+    assert.equal(artifacts.status, 200);
+    const usage = await fetch(`${server.url}/v1/lucy/jobs/${id}/usage`);
+    assert.equal(usage.status, 200);
+    const cancel = await fetch(`${server.url}/v1/lucy/jobs/${id}/cancel`, {
+      method: "POST",
+    });
+    assert.equal(cancel.status, 200);
+    const events = parseSseText(await (await askP).text());
+    assert.ok(events.some((e) => e.event === "error"));
+    const listed = await fetch(`${server.url}/v1/lucy/conversations`);
+    const convos = (await listed.json()) as { items: { id: string }[] };
+    assert.ok(convos.items.some((c) => c.id === "conv-cancel"));
+  } finally {
+    await server.close();
+  }
+});
+
+test("lucy conversation transcript and tool_call events", async () => {
+  const { control, server } = await serve({
+    lucyPool: "official",
+    lucyFulfill: "official",
+  });
+  try {
+    (control.transport as import("../src/cursor/mock.ts").MockCursorClient).streamToolCall =
+      true;
+    const ask = await fetch(`${server.url}/v1/lucy/ask`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        question: "read the readme",
+        pool: "official",
+        conversationId: "conv-tools",
+      }),
+    });
+    const events = parseSseText(await ask.text());
+    assert.ok(events.some((e) => e.event === "tool_call"));
+    const transcript = await fetch(`${server.url}/v1/lucy/conversations/conv-tools`);
+    assert.equal(transcript.status, 200);
+    const body = (await transcript.json()) as {
+      items: { role: string; text: string }[];
+    };
+    assert.ok(body.items.some((t) => t.role === "user"));
+    assert.ok(body.items.some((t) => t.role === "assistant"));
+  } finally {
+    await server.close();
+  }
+});
+
 test("official pool streams through createRun + streamRun", async () => {
   const { server } = await serve({
     lucyPool: "official",

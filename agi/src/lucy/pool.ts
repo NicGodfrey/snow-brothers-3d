@@ -6,6 +6,7 @@ export interface AcquireInput {
   pool: "copies" | "official";
   conversationId: string;
   target?: string;
+  exclude?: string[];
 }
 
 export class LucyPool {
@@ -33,8 +34,11 @@ export class LucyPool {
     }));
   }
 
-  pickIdle(kind: LucyKind): LucySlot | null {
-    const idle = kind === "copy" ? this.idleCopies() : this.idleOfficial();
+  pickIdle(kind: LucyKind, exclude: string[] = []): LucySlot | null {
+    const blocked = new Set(exclude);
+    const idle = (kind === "copy" ? this.idleCopies() : this.idleOfficial()).filter(
+      (s) => !blocked.has(s.name) && !blocked.has(s.agentId),
+    );
     if (idle.length === 0) return null;
     const index = Math.min(idle.length - 1, Math.floor(this.rng() * idle.length));
     return idle[index] ?? null;
@@ -100,7 +104,7 @@ export class LucyPool {
       this.conversations.set(input.conversationId, { name: slot.name, kind: "copy" });
       return slot;
     }
-    const picked = this.pickIdle("copy");
+    const picked = this.pickIdle("copy", input.exclude);
     if (!picked) {
       throw new AgiError("no_idle_lucy", "No idle lucy copies are available", 503);
     }
@@ -112,7 +116,12 @@ export class LucyPool {
 
   private acquireOfficial(input: AcquireInput): LucySlot {
     const pinned = this.conversations.get(input.conversationId);
-    const name = input.target ?? (pinned?.kind === "official" ? pinned.name : undefined);
+    const excluded = new Set(input.exclude ?? []);
+    const pinnedName =
+      pinned?.kind === "official" && !excluded.has(pinned.name)
+        ? pinned.name
+        : undefined;
+    const name = input.target ?? pinnedName;
     if (name) {
       const slot = this.registry.get(name);
       if (!slot.agentId || slot.source !== "official") {
@@ -129,7 +138,7 @@ export class LucyPool {
       this.conversations.set(input.conversationId, { name, kind: "official" });
       return { name, agentId: slot.agentId, kind: "official", status: "busy" };
     }
-    const picked = this.pickIdle("official");
+    const picked = this.pickIdle("official", input.exclude);
     if (!picked) {
       throw new AgiError("no_idle_lucy", "No idle official lucys are available", 503);
     }

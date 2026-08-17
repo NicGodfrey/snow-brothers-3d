@@ -26,6 +26,15 @@ export async function handleLucy(
     json(res, 200, { items: plane.lucy.list() });
     return true;
   }
+  if (req.method === "GET" && path === "/v1/lucy/conversations") {
+    json(res, 200, plane.lucy.conversations());
+    return true;
+  }
+  const conversation = path.match(/^\/v1\/lucy\/conversations\/([^/]+)$/);
+  if (req.method === "GET" && conversation) {
+    json(res, 200, plane.lucy.conversation(conversation[1]!));
+    return true;
+  }
 
   const stream = path.match(/^\/v1\/lucy\/stream\/([^/]+)$/);
   if (req.method === "GET" && stream) {
@@ -57,6 +66,21 @@ export async function handleLucy(
     return true;
   }
 
+  const artifacts = path.match(/^\/v1\/lucy\/jobs\/([^/]+)\/artifacts$/);
+  if (req.method === "GET" && artifacts) {
+    json(res, 200, await plane.lucy.artifacts(artifacts[1]!));
+    return true;
+  }
+  const usage = path.match(/^\/v1\/lucy\/jobs\/([^/]+)\/usage$/);
+  if (req.method === "GET" && usage) {
+    json(res, 200, await plane.lucy.usage(usage[1]!));
+    return true;
+  }
+  const cancel = path.match(/^\/v1\/lucy\/jobs\/([^/]+)\/cancel$/);
+  if (req.method === "POST" && cancel) {
+    json(res, 200, await plane.lucy.cancel(cancel[1]!));
+    return true;
+  }
   const fail = path.match(/^\/v1\/lucy\/jobs\/([^/]+)\/fail$/);
   if (req.method === "POST" && fail) {
     const body = (await readJsonBody(req, plane.config.maxBodyBytes)) as {

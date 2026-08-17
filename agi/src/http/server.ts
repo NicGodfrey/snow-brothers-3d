@@ -7,6 +7,7 @@ import { assertBindAuth } from "./bind.ts";
 import { readJsonBody } from "./body.ts";
 import { json } from "./json.ts";
 import { handleLucy } from "./lucy-routes.ts";
+import { handleOfficial } from "./official-routes.ts";
 
 export function startServer(plane: ControlPlane): Promise<{
   close: () => Promise<void>;
@@ -47,7 +48,12 @@ async function handle(
       return;
     }
     if (!authorize(plane.config, req)) {
-      json(res, 401, { error: { code: "unauthorized", message: "Bearer token required" } });
+      json(res, 401, {
+        error: {
+          code: "unauthorized",
+          message: "Bearer or Basic control token required",
+        },
+      });
       return;
     }
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "127.0.0.1"}`);
@@ -69,6 +75,7 @@ async function handle(
       });
       return;
     }
+    if (await handleOfficial(plane, req, res, url)) return;
     if (await handleLucy(plane, req, res, url)) return;
     if (req.method === "GET" && path === "/v1/fleet") {
       json(
@@ -158,8 +165,9 @@ async function readAsk(
 function corsHeaders(req: IncomingMessage): Record<string, string> {
   return {
     "access-control-allow-origin": String(req.headers.origin ?? "*"),
-    "access-control-allow-headers": "authorization, content-type",
-    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-headers":
+      "authorization, content-type, last-event-id, x-requested-with",
+    "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
     "access-control-max-age": "600",
   };
 }

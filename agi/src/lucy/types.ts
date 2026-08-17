@@ -10,6 +10,12 @@ export interface LucySlot {
   status: "idle" | "busy" | "error";
 }
 
+export interface PromptImageIn {
+  data?: string;
+  mimeType?: string;
+  url?: string;
+}
+
 export interface LucyAskRequest {
   question: string;
   conversationId?: string;
@@ -17,6 +23,17 @@ export interface LucyAskRequest {
   pool?: LucyPoolName;
   stream?: boolean;
   conversationMode?: "agent" | "plan";
+  images?: PromptImageIn[];
+  failover?: boolean;
+  mcpServers?: unknown[];
+}
+
+export interface LucyTurn {
+  role: "user" | "assistant";
+  text: string;
+  jobId: string;
+  lucyName: string;
+  at: string;
 }
 
 export interface LucySseEvent {
@@ -42,6 +59,9 @@ export interface LucyJob {
   events: LucySseEvent[];
   startedAtMs: number;
   lastModelAtMs: number;
+  runId?: string;
+  imageCount?: number;
+  failover?: boolean;
 }
 
 export interface LucyPoolSnapshot {

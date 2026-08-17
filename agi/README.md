@@ -2,7 +2,7 @@
 
 Official orchestrator for the 101-slot Lucy fleet on `github.com/NicGodfrey/snow-brothers-3d`.
 
-It talks only to [Cursor Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endpoints): `POST /v1/agents` and `POST /v1/agents/{id}/runs`. It does not implement or use unofficial Cursor proxies.
+It talks only to [Cursor Cloud Agents API v1](https://cursor.com/docs/cloud-agent/api/endpoints) and exposes that full surface at **120%**: every documented v1/v0 route, plus lucy pool extras (idle pick, failover, transcripts, stall watchdog, fanout). It does not implement or use unofficial Cursor proxies, and it does not expose an Anthropic `/v1/messages` facade.
 
 ## Hard limits
 
@@ -98,6 +98,26 @@ node scripts/lucy-chat.mjs --file prompt.txt
 | `auto` (default) | Official idle slots when the official transport is up; otherwise copies | Official SSE, or mock/queue for copies |
 | `copies` | Original lucy + `lucy-copy-01`…`10` from `data/lucy-copies.json` | **Queue**: Task copies cannot use official `createRun` (legacy-workflow 400). The stream waits; a parent drain posts `POST /v1/lucy/jobs/:id/tokens` then `/complete`. `npm run lucy:drain` lists waiting jobs. Mock transport answers immediately. |
 | `official` | Random idle official slot (lucy02, lucy03, …) | Official `createRun` + `GET /v1/agents/{id}/runs/{runId}/stream`. |
+
+`GET /v1/capabilities` lists the official Cloud Agents API surface this plane exposes, plus the extras above 100% (idle pool, failover, transcripts, stall watchdog, fanout).
+
+Official-compatible routes (auth is `AGI_CONTROL_TOKEN` as Bearer **or** official-style Basic `token:`; the plane uses `CURSOR_API_KEY` upstream):
+
+- `GET /v1/me` `GET /v1/models` `GET /v1/repositories`
+- `GET|POST /v1/agents` and `GET|DELETE /v1/agents/:id`
+- `POST /v1/agents/:id/runs` `GET /v1/agents/:id/runs` `GET /v1/agents/:id/runs/:runId`
+- `GET /v1/agents/:id/runs/:runId/stream` (`Last-Event-ID` resume, `X-Cursor-Stream-Retention-Seconds`)
+- `POST /v1/agents/:id/runs/:runId/cancel`
+- `GET /v1/agents/:id/usage` `GET /v1/agents/:id/artifacts` `GET /v1/agents/:id/artifacts/download`
+- `POST /v1/agents/:id/archive` `POST /v1/agents/:id/unarchive`
+- `POST /v1/sub-tokens`
+- `GET /v0/private-workers` `GET /v0/private-workers/summary` `GET /v0/private-workers/:id`
+- `GET /v0/private-workers/pools` `DELETE /v0/private-workers/pools`
+- `GET /v0/private-workers/pending-requests` `POST /v0/private-workers/claim`
+
+Above 100%: `GET /v1/agents/:id/conversation`, `GET /v1/agents/:id/runs/:runId/wait`, lucy idle pool, busy failover, stall watchdog, transcripts, job cancel/artifacts/usage, fanout.
+
+Lucy extras: `images` (max 5), `tool_call` + `interaction_update` SSE, `POST /v1/lucy/jobs/:id/cancel`, `GET /v1/lucy/conversations` and `/:id`, `GET /v1/lucy/jobs/:id/artifacts`, `GET /v1/lucy/jobs/:id/usage`, busy failover onto another idle official lucy.
 
 This plane does **not** expose an Anthropic `/v1/messages` relay. Tools that probe unofficial Claude midpoints (including cctest.ai) are out of scope and must not receive Cursor API keys.
 

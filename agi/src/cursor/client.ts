@@ -3,7 +3,9 @@ import type { AgiConfig } from "../config.ts";
 import type { ConversationMode } from "../types.ts";
 import { parseSseStream } from "../sse.ts";
 import {
+  asRunInput,
   isTerminal,
+  promptBody,
   type CreateAgentInput,
   type CursorAgent,
   type CursorRun,
@@ -32,13 +34,21 @@ export class OfficialCursorClient implements CursorTransport {
     return this.request<CursorAgent>(`/v1/agents/${id}`);
   }
 
+  async listAgents(query?: Record<string, string | undefined>): Promise<unknown> {
+    return this.request("/v1/agents", { query });
+  }
+
   async createRun(
     id: string,
-    prompt: string,
+    prompt: string | import("./types.ts").CreateRunInput,
     mode?: ConversationMode,
   ): Promise<CursorRun> {
-    const payload: Record<string, unknown> = { prompt: { text: prompt } };
-    if (mode) payload.mode = mode;
+    const input = asRunInput(prompt, mode);
+    const payload: Record<string, unknown> = {
+      prompt: promptBody(input.prompt, input.images),
+    };
+    if (input.mode) payload.mode = input.mode;
+    if (input.mcpServers) payload.mcpServers = input.mcpServers;
     const res = await this.request<{ run: CursorRun }>(
       `/v1/agents/${id}/runs`,
       { method: "POST", body: payload },
@@ -46,8 +56,19 @@ export class OfficialCursorClient implements CursorTransport {
     return res.run;
   }
 
+  async listRuns(
+    id: string,
+    query?: Record<string, string | undefined>,
+  ): Promise<unknown> {
+    return this.request(`/v1/agents/${id}/runs`, { query });
+  }
+
   async getRun(id: string, runId: string): Promise<CursorRun> {
     return this.request<CursorRun>(`/v1/agents/${id}/runs/${runId}`);
+  }
+
+  async cancelRun(id: string, runId: string): Promise<unknown> {
+    return this.request(`/v1/agents/${id}/runs/${runId}/cancel`, { method: "POST" });
   }
 
   async createAgent(
@@ -55,30 +76,56 @@ export class OfficialCursorClient implements CursorTransport {
   ): Promise<{ agent: CursorAgent; run: CursorRun }> {
     const body: Record<string, unknown> = {
       name: input.name.slice(0, 100),
-      prompt: { text: input.prompt },
+      prompt: promptBody(input.prompt, input.images),
       mode: input.conversationMode ?? "agent",
-      repos: [
+      autoCreatePR: input.autoCreatePR ?? false,
+    };
+    if (input.env) body.env = input.env;
+    else if (input.repoUrl) {
+      body.repos = [
         {
           url: input.repoUrl,
           startingRef: input.startingRef,
+          ...(input.prUrl ? { prUrl: input.prUrl } : {}),
         },
-      ],
-      autoCreatePR: false,
-    };
+      ];
+    }
+    if (input.workOnCurrentBranch !== undefined) {
+      body.workOnCurrentBranch = input.workOnCurrentBranch;
+    }
     if (input.modelId) {
       body.model = {
         id: input.modelId,
         ...(input.modelParams?.length ? { params: input.modelParams } : {}),
       };
     }
+    if (input.envVars) body.envVars = input.envVars;
+    if (input.mcpServers) body.mcpServers = input.mcpServers;
+    if (input.skipReviewerRequest !== undefined) {
+      body.skipReviewerRequest = input.skipReviewerRequest;
+    }
+    if (input.customSubagents) body.customSubagents = input.customSubagents;
+    if (input.agentId) body.agentId = input.agentId;
     return this.request<{ agent: CursorAgent; run: CursorRun }>("/v1/agents", {
       method: "POST",
       body,
     });
   }
 
+  async createAgentRaw(body: Record<string, unknown>): Promise<unknown> {
+    return this.request("/v1/agents", { method: "POST", body });
+  }
+
   async archiveAgent(id: string): Promise<void> {
     await this.request(`/v1/agents/${id}/archive`, { method: "POST" });
+  }
+
+  async unarchiveAgent(id: string): Promise<void> {
+    await this.request(`/v1/agents/${id}/unarchive`, { method: "POST" });
+  }
+
+  async deleteAgent(id: string): Promise<unknown> {
+    return this.request(`/v1/agents/${id}`, { method: "DELETE" });
   }
 
   async waitForRun(id: string, runId: string): Promise<CursorRun> {
@@ -101,15 +148,17 @@ export class OfficialCursorClient implements CursorTransport {
   async *streamRun(
     id: string,
     runId: string,
-    options?: { signal?: AbortSignal },
+    options?: { signal?: AbortSignal; lastEventId?: string },
   ): AsyncIterable<CursorStreamEvent> {
     const url = `${this.config.apiBase}/v1/agents/${id}/runs/${runId}/stream`;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.config.apiKey}`,
+      Accept: "text/event-stream",
+    };
+    if (options?.lastEventId) headers["Last-Event-ID"] = options.lastEventId;
     const res = await fetch(url, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${this.config.apiKey}`,
-        Accept: "text/event-stream",
-      },
+      headers,
       signal: options?.signal,
     });
     if (res.status === 410) {
@@ -153,12 +202,72 @@ export class OfficialCursorClient implements CursorTransport {
     }
   }
 
+  async getUsage(id: string, runId?: string): Promise<unknown> {
+    return this.request(`/v1/agents/${id}/usage`, {
+      query: runId ? { runId } : undefined,
+    });
+  }
+
+  async listArtifacts(id: string): Promise<unknown> {
+    return this.request(`/v1/agents/${id}/artifacts`);
+  }
+
+  async downloadArtifact(id: string, path: string): Promise<unknown> {
+    return this.request(`/v1/agents/${id}/artifacts/download`, {
+      query: { path },
+    });
+  }
+
   async listModels(): Promise<unknown> {
     return this.request("/v1/models");
   }
 
   async me(): Promise<unknown> {
     return this.request("/v1/me");
+  }
+
+  async listRepositories(): Promise<unknown> {
+    return this.request("/v1/repositories");
+  }
+
+  async createSubToken(body: Record<string, unknown>): Promise<unknown> {
+    return this.request("/v1/sub-tokens", { method: "POST", body });
+  }
+
+  async listWorkers(query?: Record<string, string | undefined>): Promise<unknown> {
+    return this.request("/v0/private-workers", { query });
+  }
+
+  async workerSummary(): Promise<unknown> {
+    return this.request("/v0/private-workers/summary");
+  }
+
+  async getWorker(id: string): Promise<unknown> {
+    return this.request(`/v0/private-workers/${id}`);
+  }
+
+  async listPools(query?: Record<string, string | undefined>): Promise<unknown> {
+    return this.request("/v0/private-workers/pools", { query });
+  }
+
+  async listPoolRequests(
+    query?: Record<string, string | undefined>,
+  ): Promise<unknown> {
+    return this.request("/v0/private-workers/pending-requests", { query });
+  }
+
+  async claimPoolRequest(body: Record<string, unknown>): Promise<unknown> {
+    return this.request("/v0/private-workers/claim", {
+      method: "POST",
+      body,
+    });
+  }
+
+  async deregisterPool(body: Record<string, unknown>): Promise<unknown> {
+    return this.request("/v0/private-workers/pools", {
+      method: "DELETE",
+      body,
+    });
   }
 
   private async request<T>(path: string, options: RequestOptions = {}): Promise<T> {

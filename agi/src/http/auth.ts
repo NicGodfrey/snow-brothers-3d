@@ -7,5 +7,16 @@ export function authorize(
 ): boolean {
   const token = config.controlToken;
   if (!token) return true;
-  return req.headers.authorization === `Bearer ${token}`;
+  const header = String(req.headers.authorization ?? "");
+  if (header === `Bearer ${token}`) return true;
+  if (!header.startsWith("Basic ")) return false;
+  try {
+    const decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+    const colon = decoded.indexOf(":");
+    const user = colon === -1 ? decoded : decoded.slice(0, colon);
+    const pass = colon === -1 ? "" : decoded.slice(colon + 1);
+    return user === token || pass === token;
+  } catch {
+    return false;
+  }
 }
