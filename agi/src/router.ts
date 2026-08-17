@@ -9,12 +9,14 @@ import type {
   FleetSlot,
   Intent,
   QaMode,
+  SessionMode,
 } from "./types.ts";
 
 export interface RoutedJob {
   mode: QaMode;
   intent: Intent;
   question: string;
+  sessionMode?: SessionMode;
   assignments: Assignment[];
   prompts: Map<string, string>;
 }
@@ -55,7 +57,7 @@ export function route(registry: FleetRegistry, request: AskRequest): RoutedJob {
     };
   });
 
-  return { mode, intent, question, assignments, prompts };
+  return { mode, intent, question, sessionMode: request.sessionMode, assignments, prompts };
 }
 
 function pickSlots(

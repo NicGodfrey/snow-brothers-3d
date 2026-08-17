@@ -96,6 +96,31 @@ test("fresh ask sends Fable 5 Max on createAgent", async () => {
   assert.deepEqual(created?.modelParams, FABLE5_MAX_PARAMS);
 });
 
+test("continue session reuses the same official agent", async () => {
+  const scheduler = new Scheduler(
+    new FleetRegistry(buildSeedSlots()),
+    new MockCursorClient(
+      buildSeedSlots()
+        .map((s) => s.agentId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+    loadConfig({ maxInFlight: 10, transport: "mock", sessionMode: "continue" }),
+  );
+  (scheduler.transport as MockCursorClient).latencyMs = 0;
+  const first = await scheduler.submit({
+    question: "Remember BETA.",
+    target: "lucy02",
+    sessionMode: "continue",
+  });
+  const second = await scheduler.submit({
+    question: "What did I say?",
+    target: "lucy02",
+    sessionMode: "continue",
+  });
+  assert.equal(first.assignments[0]!.agentId, second.assignments[0]!.agentId);
+  assert.equal(first.assignments[0]!.agentId, "bc-1d069f7a-9bfc-46e9-a672-701aca214231");
+});
+
 test("fresh session archives the previous agent and starts a new conversation", async () => {
   const scheduler = plane();
   const first = await scheduler.submit({

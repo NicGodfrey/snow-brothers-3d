@@ -5,6 +5,7 @@
  */
 const base = (process.env.AGI_URL ?? "http://127.0.0.1:8787").replace(/\/$/, "");
 const n = Number(process.env.AGI_CONCURRENCY ?? 10);
+const sessionMode = process.env.AGI_SESSION_MODE === "continue" ? "continue" : "fresh";
 const question =
   process.env.AGI_QUESTION ??
   "Go-live concurrent probe. Reply with exactly: LIVE OK";
@@ -33,7 +34,8 @@ console.log(
     transport: info.transport,
     modelId: info.modelId,
     modelParams: info.modelParams,
-    sessionMode: info.sessionMode,
+    sessionMode,
+    planeSessionMode: info.sessionMode,
     targets: official,
   }),
 );
@@ -45,7 +47,7 @@ const results = await Promise.all(
       const res = await fetch(`${base}/v1/ask`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question, target }),
+        body: JSON.stringify({ question, target, sessionMode }),
       });
       const job = await res.json();
       const row = {

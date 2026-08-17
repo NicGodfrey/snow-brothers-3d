@@ -116,7 +116,11 @@ export class Scheduler {
     this.jobs.setStatus(job.id, "running");
     const results = await Promise.all(
       routed.assignments.map((assignment) =>
-        this.dispatchOne(assignment, routed.prompts.get(assignment.slotName)!),
+        this.dispatchOne(
+          assignment,
+          routed.prompts.get(assignment.slotName)!,
+          routed.sessionMode,
+        ),
       ),
     );
     this.jobs.update(job.id, { assignments: results });
@@ -134,6 +138,7 @@ export class Scheduler {
   private async dispatchOne(
     assignment: Assignment,
     prompt: string,
+    routedSessionMode?: RoutedJob["sessionMode"],
   ): Promise<Assignment> {
     await this.global.acquire();
     this.peakInFlight = Math.max(this.peakInFlight, this.global.inFlight);
@@ -143,7 +148,7 @@ export class Scheduler {
         const started = Date.now();
         const previousId = assignment.agentId;
         try {
-          const sessionMode = this.config.sessionMode;
+          const sessionMode = routedSessionMode ?? this.config.sessionMode;
           let agentId = previousId;
           let runId: string;
           if (sessionMode === "fresh") {
