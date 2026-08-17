@@ -1,119 +1,147 @@
-import type { FleetSlot } from "./types.ts";
+import type { FleetSlot, SlotSource } from "./types.ts";
 
 interface KnownSlot {
   name: string;
   agentId: string;
+  source: SlotSource;
   status: "idle" | "error";
 }
 
-/** Live Task-spawned copies observed on 2026-08-17. ERROR rows are not dispatchable. */
-export const KNOWN_SLOTS: KnownSlot[] = [
-  {
-    name: "lucy",
-    agentId: "bc-9a1ae0da-1b80-5fe3-985e-94bc5ea1f3eb",
-    status: "idle",
-  },
-  {
-    name: "lucy01",
-    agentId: "bc-b0b2da80-3f7a-5b8c-8662-8ff5fd6d7acf",
-    status: "idle",
-  },
+/** Official API agents can take follow-up or be replaced on each fresh session. */
+export const OFFICIAL_SLOTS: KnownSlot[] = [
   {
     name: "lucy02",
     agentId: "bc-1d069f7a-9bfc-46e9-a672-701aca214231",
+    source: "official",
     status: "idle",
   },
   {
     name: "lucy03",
-    agentId: "bc-1fb606b8-13c3-508f-bda3-0bff67f2d35d",
-    status: "error",
+    agentId: "bc-0958858d-3d17-490b-b6ef-2d3eda16f6fb",
+    source: "official",
+    status: "idle",
   },
   {
     name: "lucy04",
-    agentId: "bc-6e5aae02-a2c7-5796-9c74-1f4e2f4ec9ba",
+    agentId: "bc-83b91fab-c4f7-46bd-b4b7-e4a531ce3621",
+    source: "official",
+    status: "idle",
+  },
+  {
+    name: "lucy11",
+    agentId: "bc-9b5c3dd5-761c-4a9a-a25b-6a2df33846b3",
+    source: "official",
+    status: "idle",
+  },
+  {
+    name: "lucy12",
+    agentId: "bc-bab955fc-000b-491c-8938-e436f109687b",
+    source: "official",
+    status: "idle",
+  },
+  {
+    name: "lucy13",
+    agentId: "bc-6e79d4f0-577f-4f01-8a15-c7e1f4f9e3c8",
+    source: "official",
+    status: "idle",
+  },
+  {
+    name: "lucy14",
+    agentId: "bc-1ad4ebf3-1c58-41d3-9ebb-fa4ed44f2b9c",
+    source: "official",
+    status: "idle",
+  },
+  {
+    name: "lucy15",
+    agentId: "bc-0bc18de9-357a-442a-892c-f7a9a2a77bb6",
+    source: "official",
+    status: "idle",
+  },
+  {
+    name: "lucy16",
+    agentId: "bc-beac2101-3d08-4f73-9543-48b4e867af5d",
+    source: "official",
+    status: "idle",
+  },
+  {
+    name: "lucy18",
+    agentId: "bc-ed9ea903-13e4-405a-9008-1908be444b0b",
+    source: "official",
+    status: "idle",
+  },
+];
+
+/** Task-spawned copies: GET works, follow-up is legacy-workflow 400. */
+export const LEGACY_SLOTS: KnownSlot[] = [
+  {
+    name: "lucy",
+    agentId: "bc-9a1ae0da-1b80-5fe3-985e-94bc5ea1f3eb",
+    source: "legacy",
+    status: "error",
+  },
+  {
+    name: "lucy01",
+    agentId: "bc-b0b2da80-3f7a-5b8c-8662-8ff5fd6d7acf",
+    source: "legacy",
     status: "error",
   },
   {
     name: "lucy05",
     agentId: "bc-63fc54fc-deda-5423-847f-aef6efb1fd10",
-    status: "idle",
+    source: "legacy",
+    status: "error",
   },
   {
     name: "lucy06",
     agentId: "bc-4d152cbc-5a33-51d3-95ce-e687d05dcf80",
-    status: "idle",
+    source: "legacy",
+    status: "error",
   },
   {
     name: "lucy07",
     agentId: "bc-5e026319-55aa-5b17-af10-da1f26853b32",
-    status: "idle",
+    source: "legacy",
+    status: "error",
   },
   {
     name: "lucy08",
     agentId: "bc-cadf7e26-c8d6-516d-ad73-5128e92633cf",
-    status: "idle",
+    source: "legacy",
+    status: "error",
   },
   {
     name: "lucy09",
     agentId: "bc-03576248-3f04-52d2-87e2-3ef29a321d99",
-    status: "idle",
+    source: "legacy",
+    status: "error",
   },
   {
     name: "lucy10",
     agentId: "bc-a2317bdd-4573-5c72-82f0-90431209748b",
-    status: "idle",
-  },
-  {
-    name: "lucy11",
-    agentId: "bc-04e56e4a-2703-5c7f-9175-e162ac65d282",
-    status: "error",
-  },
-  {
-    name: "lucy12",
-    agentId: "bc-8d593e93-4ed1-5493-a537-2591e0d32665",
-    status: "error",
-  },
-  {
-    name: "lucy13",
-    agentId: "bc-8670f66d-c536-533a-9ae6-75a174fd91e5",
-    status: "error",
-  },
-  {
-    name: "lucy14",
-    agentId: "bc-d4efe6e0-e8c3-5449-974a-00802b98c596",
-    status: "error",
-  },
-  {
-    name: "lucy15",
-    agentId: "bc-7b15128f-4b88-5230-8003-8b04f5a95211",
-    status: "error",
-  },
-  {
-    name: "lucy16",
-    agentId: "bc-c54a7f6c-2bb7-5bd3-a079-f0292327de35",
+    source: "legacy",
     status: "error",
   },
   {
     name: "lucy17",
     agentId: "bc-1fb51db7-9e9a-5acd-92ce-aff6f90e0e77",
-    status: "idle",
-  },
-  {
-    name: "lucy18",
-    agentId: "bc-77b238c3-0be7-506d-820e-69214e6aae29",
+    source: "legacy",
     status: "error",
   },
   {
     name: "lucy19",
     agentId: "bc-34155fcd-9765-5d80-9e4f-8628454fb27f",
-    status: "idle",
+    source: "legacy",
+    status: "error",
   },
   {
     name: "lucy20",
     agentId: "bc-50ff824a-b044-58b1-9b58-530d187cc583",
-    status: "idle",
+    source: "legacy",
+    status: "error",
   },
 ];
+
+export const KNOWN_SLOTS: KnownSlot[] = [...OFFICIAL_SLOTS, ...LEGACY_SLOTS];
 
 export function slotName(index: number): string {
   if (index === 0) return "lucy";
@@ -132,13 +160,12 @@ export function buildSeedSlots(): FleetSlot[] {
         role: name === "lucy" ? "coordinator" : "worker",
         agentId: hit.agentId,
         status: hit.status,
+        source: hit.source,
         url: `https://cursor.com/agents/${hit.agentId}`,
         notes:
-          hit.agentId === "bc-1d069f7a-9bfc-46e9-a672-701aca214231"
-            ? "Official Cloud Agents API agent. Follow-up Q&A works."
-            : hit.status === "error"
-              ? "Task spawn failed at the async-10 cap. Not dispatchable until provisioned via official API."
-              : "Task-spawned copy. Official GET works; follow-up runs fail with legacy-workflow 400. Provision a replacement.",
+          hit.source === "official"
+            ? "Official Cloud Agents API agent. Fresh sessions archive the previous agent and create a new conversation."
+            : "Task-spawned copy. Official follow-up is legacy-workflow 400. Not dispatchable.",
       });
       continue;
     }
@@ -147,6 +174,7 @@ export function buildSeedSlots(): FleetSlot[] {
       role: "worker",
       agentId: null,
       status: "unprovisioned",
+      source: "unprovisioned",
       url: null,
       notes: "Never created. Provision with POST /v1/fleet/provision.",
     });

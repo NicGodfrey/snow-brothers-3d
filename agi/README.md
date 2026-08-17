@@ -11,7 +11,7 @@ It talks only to [Cursor Cloud Agents API v1](https://cursor.com/docs/cloud-agen
 | HTTP admission | 100 in-flight jobs | Requested AGI concurrency |
 | Per agent | 1 active run | Official API returns `409 agent_busy` |
 | Parent Task spawn | 10 async children | Cursor Cloud Agent hard limit |
-| Current dispatchable copies | 11 | lucy + 10 idle Task copies; 10 ERROR stubs; lucy21–lucy100 never created |
+| Current official slots | 10 | lucy02, lucy03, lucy04, lucy11–lucy16, lucy18 |
 
 100 concurrent live Cloud Agent runs need 100 distinct official agents. The control plane can admit 100 jobs and queue them onto the slots that actually exist.
 
@@ -27,7 +27,9 @@ npm start
 
 Without `CURSOR_API_KEY` the plane starts in `mock` transport so environment boots and CI stay green.
 
-Optional: `AGI_CONTROL_TOKEN` (Bearer auth), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (127.0.0.1), `AGI_TRANSPORT` (`official` or `mock`).
+Optional: `AGI_CONTROL_TOKEN` (Bearer auth), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (127.0.0.1), `AGI_TRANSPORT` (`official` or `mock`), `AGI_SESSION_MODE` (`fresh` default, or `continue`), `AGI_MODEL_ID` (official `GET /v1/models` id such as `grok-4.6`, `claude-fable-5`, `claude-opus-5`).
+
+Every new `/v1/ask` (and the other Q&A routes) starts a **new conversation**: the plane creates a new official agent for that turn and archives the previous one on the slot. Official `POST /v1/agents/{id}/runs` cannot reset chat history. Set `AGI_SESSION_MODE=continue` only if you want follow-up on the same agent.
 
 ## Remote Q&A
 
@@ -36,7 +38,7 @@ curl -s http://127.0.0.1:8787/health
 curl -s http://127.0.0.1:8787/v1/fleet
 curl -s -X POST http://127.0.0.1:8787/v1/ask \
   -H 'content-type: application/json' \
-  -d '{"question":"What is Stage 1?","target":"lucy01"}'
+  -d '{"question":"What is Stage 1?","target":"lucy02"}'
 curl -s -X POST http://127.0.0.1:8787/v1/fanout \
   -H 'content-type: application/json' \
   -d '{"question":"Name one cat-AI risk.","n":8}'

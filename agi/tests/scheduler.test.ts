@@ -20,11 +20,11 @@ test("ask routes a single idle worker and returns an answer", async () => {
   const scheduler = plane();
   const job = await scheduler.submit({
     question: "What is the Stage 1 cheese quota?",
-    target: "lucy01",
+    target: "lucy02",
   });
   assert.equal(job.status, "succeeded");
   assert.equal(job.assignments.length, 1);
-  assert.match(job.assignments[0]!.answer ?? "", /lucy01|quota|Stage/);
+  assert.match(job.assignments[0]!.answer ?? "", /lucy02|quota|Stage/);
   assert.equal(job.intent, "game");
 });
 
@@ -69,6 +69,27 @@ test("provision fills unprovisioned slots on the mock transport", async () => {
   const job = await scheduler.provision(5);
   assert.equal(job.status, "succeeded");
   assert.equal(scheduler.registry.dispatchable().length, before + 5);
-  assert.equal(scheduler.registry.get("lucy03").status, "idle");
-  assert.ok(scheduler.registry.get("lucy03").agentId?.startsWith("bc-mock-"));
+  assert.equal(scheduler.registry.get("lucy").status, "idle");
+  assert.equal(scheduler.registry.get("lucy").source, "official");
+  assert.ok(scheduler.registry.get("lucy").agentId?.startsWith("bc-mock-"));
+});
+
+test("fresh session archives the previous agent and starts a new conversation", async () => {
+  const scheduler = plane();
+  const first = await scheduler.submit({
+    question: "Remember the token ALPHA.",
+    target: "lucy02",
+  });
+  const firstId = first.assignments[0]!.agentId;
+  const second = await scheduler.submit({
+    question: "What token did I just give you?",
+    target: "lucy02",
+  });
+  const secondId = second.assignments[0]!.agentId;
+  assert.notEqual(firstId, secondId);
+  assert.equal(scheduler.registry.get("lucy02").agentId, secondId);
+  const mock = scheduler.transport as MockCursorClient;
+  assert.equal(mock.agents.get(firstId)!.archived, true);
+  assert.equal(mock.agents.get(secondId)!.archived, false);
+  assert.equal(mock.agents.get(secondId)!.history.length, 1);
 });

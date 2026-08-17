@@ -23,6 +23,8 @@ export type JobStatus =
 export type AssignmentStatus = "pending" | "running" | "succeeded" | "failed";
 export type TransportName = "official" | "mock";
 export type ConversationMode = "agent" | "plan";
+export type SessionMode = "fresh" | "continue";
+export type SlotSource = "official" | "legacy" | "unprovisioned";
 
 export interface FleetSlot {
   name: string;
@@ -30,6 +32,7 @@ export interface FleetSlot {
   agentId: string | null;
   status: AgentSlotStatus;
   url: string | null;
+  source: SlotSource;
   notes?: string;
 }
 
@@ -63,6 +66,7 @@ export interface AskRequest {
   target?: string;
   n?: number;
   conversationMode?: ConversationMode;
+  sessionMode?: SessionMode;
 }
 
 export interface FleetSnapshot {

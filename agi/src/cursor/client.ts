@@ -51,21 +51,29 @@ export class OfficialCursorClient implements CursorTransport {
   async createAgent(
     input: CreateAgentInput,
   ): Promise<{ agent: CursorAgent; run: CursorRun }> {
+    const body: Record<string, unknown> = {
+      name: input.name.slice(0, 100),
+      prompt: { text: input.prompt },
+      mode: input.conversationMode ?? "agent",
+      repos: [
+        {
+          url: input.repoUrl,
+          startingRef: input.startingRef,
+        },
+      ],
+      autoCreatePR: false,
+    };
+    if (input.modelId) {
+      body.model = { id: input.modelId };
+    }
     return this.request<{ agent: CursorAgent; run: CursorRun }>("/v1/agents", {
       method: "POST",
-      body: {
-        name: input.name.slice(0, 100),
-        prompt: { text: input.prompt },
-        mode: input.conversationMode ?? "agent",
-        repos: [
-          {
-            url: input.repoUrl,
-            startingRef: input.startingRef,
-          },
-        ],
-        autoCreatePR: false,
-      },
+      body,
     });
+  }
+
+  async archiveAgent(id: string): Promise<void> {
+    await this.request(`/v1/agents/${id}/archive`, { method: "POST" });
   }
 
   async waitForRun(id: string, runId: string): Promise<CursorRun> {

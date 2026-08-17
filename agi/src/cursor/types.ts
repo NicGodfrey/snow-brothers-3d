@@ -32,6 +32,7 @@ export interface CreateAgentInput {
   repoUrl: string;
   startingRef: string;
   conversationMode?: ConversationMode;
+  modelId?: string;
 }
 
 export interface CursorTransport {
@@ -46,6 +47,7 @@ export interface CursorTransport {
     input: CreateAgentInput,
   ): Promise<{ agent: CursorAgent; run: CursorRun }>;
   waitForRun(id: string, runId: string): Promise<CursorRun>;
+  archiveAgent(id: string): Promise<void>;
 }
 
 export function isTerminal(status: CursorRunStatus): boolean {

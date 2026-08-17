@@ -79,6 +79,7 @@ export class Scheduler {
             }),
             repoUrl: this.config.repoUrl,
             startingRef: this.config.startingRef,
+            modelId: this.config.modelId,
           });
           this.registry.bind(slot.name, created.agent.id);
           assignments[index] = {
@@ -136,26 +137,45 @@ export class Scheduler {
     await this.global.acquire();
     this.peakInFlight = Math.max(this.peakInFlight, this.global.inFlight);
     try {
-      return await this.agentLocks.run(assignment.agentId, async () => {
+      return await this.agentLocks.run(assignment.slotName, async () => {
         this.registry.mark(assignment.slotName, "busy");
         const started = Date.now();
+        const previousId = assignment.agentId;
         try {
-          const run = await this.transport.createRun(assignment.agentId, prompt);
-          const finished = await this.transport.waitForRun(
-            assignment.agentId,
-            run.id,
-          );
+          const sessionMode = this.config.sessionMode;
+          let agentId = previousId;
+          let runId: string;
+          if (sessionMode === "fresh") {
+            const created = await this.transport.createAgent({
+              name: assignment.slotName,
+              prompt,
+              repoUrl: this.config.repoUrl,
+              startingRef: this.config.startingRef,
+              modelId: this.config.modelId,
+            });
+            agentId = created.agent.id;
+            runId = created.run.id;
+            this.registry.bind(assignment.slotName, agentId);
+            if (previousId && previousId !== agentId) {
+              await this.transport.archiveAgent(previousId).catch(() => undefined);
+            }
+          } else {
+            const run = await this.transport.createRun(previousId, prompt);
+            runId = run.id;
+          }
+          const finished = await this.transport.waitForRun(agentId, runId);
           if (finished.status !== "FINISHED") {
             throw new TransportError(
               "run_failed",
-              `Run ${run.id} ended ${finished.status}`,
+              `Run ${runId} ended ${finished.status}`,
               502,
             );
           }
           this.registry.mark(assignment.slotName, "idle");
           return {
             ...assignment,
-            runId: run.id,
+            agentId,
+            runId,
             status: "succeeded",
             answer: finished.result ?? "",
             durationMs: Date.now() - started,

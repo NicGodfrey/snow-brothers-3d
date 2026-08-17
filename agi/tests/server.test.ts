@@ -23,7 +23,7 @@ test("health and ask endpoints serve Q&A over HTTP", async () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         question: "Reply with the word ready.",
-        target: "lucy",
+        target: "lucy02",
       }),
     });
     assert.equal(ask.status, 200);

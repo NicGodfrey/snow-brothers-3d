@@ -34,7 +34,9 @@ export class FleetRegistry {
   }
 
   dispatchable(): FleetSlot[] {
-    return this.slots.filter((s) => s.status === "idle" && Boolean(s.agentId));
+    return this.slots.filter(
+      (s) => s.status === "idle" && s.source === "official" && Boolean(s.agentId),
+    );
   }
 
   takeIdle(count: number): FleetSlot[] {
@@ -52,8 +54,10 @@ export class FleetRegistry {
     const slot = this.get(name);
     slot.agentId = agentId;
     slot.status = "idle";
+    slot.source = "official";
     slot.url = `https://cursor.com/agents/${agentId}`;
-    slot.notes = "Provisioned via official Cloud Agents API.";
+    slot.notes =
+      "Official Cloud Agents API agent. Fresh sessions archive the previous agent and create a new conversation.";
     return slot;
   }
 

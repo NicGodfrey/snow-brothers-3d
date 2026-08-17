@@ -1,4 +1,8 @@
-import { DEFAULT_MAX_IN_FLIGHT, type TransportName } from "./types.ts";
+import {
+  DEFAULT_MAX_IN_FLIGHT,
+  type SessionMode,
+  type TransportName,
+} from "./types.ts";
 
 export interface AgiConfig {
   apiKey: string | undefined;
@@ -13,6 +17,8 @@ export interface AgiConfig {
   pollMs: number;
   pollTimeoutMs: number;
   fleetPath: string | undefined;
+  sessionMode: SessionMode;
+  modelId: string | undefined;
 }
 
 function envInt(name: string, fallback: number): number {
@@ -50,6 +56,9 @@ export function loadConfig(overrides: Partial<AgiConfig> = {}): AgiConfig {
     pollMs: envInt("AGI_POLL_MS", 2000),
     pollTimeoutMs: envInt("AGI_POLL_TIMEOUT_MS", 15 * 60 * 1000),
     fleetPath: process.env.AGI_FLEET_PATH?.trim() || undefined,
+    sessionMode:
+      process.env.AGI_SESSION_MODE?.trim() === "continue" ? "continue" : "fresh",
+    modelId: process.env.AGI_MODEL_ID?.trim() || undefined,
     ...overrides,
   };
 }

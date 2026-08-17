@@ -10,6 +10,8 @@ import type {
 
 interface MockAgent extends CursorAgent {
   busy: boolean;
+  archived: boolean;
+  history: string[];
 }
 
 export class MockCursorClient implements CursorTransport {
@@ -26,6 +28,8 @@ export class MockCursorClient implements CursorTransport {
         status: "ACTIVE",
         url: `https://cursor.com/agents/${id}`,
         busy: false,
+        archived: false,
+        history: [],
       });
     }
   }
@@ -49,6 +53,9 @@ export class MockCursorClient implements CursorTransport {
     if (!agent) {
       throw new TransportError("http_404", `Unknown agent ${id}`, 404);
     }
+    if (agent.archived) {
+      throw new TransportError("http_409", `Agent ${id} is archived`, 409);
+    }
     if (agent.busy) {
       throw new TransportError("agent_busy", `Agent ${id} is busy`, 409, true);
     }
@@ -57,6 +64,7 @@ export class MockCursorClient implements CursorTransport {
       throw new TransportError("http_500", "injected failure", 500, true);
     }
     agent.busy = true;
+    agent.history.push(prompt);
     const run: CursorRun = {
       id: `run-${randomUUID()}`,
       agentId: id,
@@ -89,10 +97,20 @@ export class MockCursorClient implements CursorTransport {
       status: "ACTIVE",
       url: `https://cursor.com/agents/${id}`,
       busy: false,
+      archived: false,
+      history: [],
     };
     this.agents.set(id, agent);
     const run = await this.createRun(id, input.prompt);
     return { agent, run };
+  }
+
+  async archiveAgent(id: string): Promise<void> {
+    await this.delay();
+    const agent = this.agents.get(id);
+    if (!agent) throw new TransportError("http_404", `Unknown agent ${id}`, 404);
+    agent.archived = true;
+    agent.status = "ARCHIVED";
   }
 
   async waitForRun(id: string, runId: string): Promise<CursorRun> {

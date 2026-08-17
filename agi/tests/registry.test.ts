@@ -12,14 +12,14 @@ test("fleet has 101 named slots", () => {
   assert.equal(slotName(20), "lucy20");
 });
 
-test("known idle copies are dispatchable and error stubs are not", () => {
+test("only official idle slots are dispatchable", () => {
   const fleet = new FleetRegistry();
   const names = fleet.dispatchable().map((s) => s.name);
-  assert.ok(names.includes("lucy"));
-  assert.ok(names.includes("lucy01"));
-  assert.ok(names.includes("lucy20"));
   assert.ok(names.includes("lucy02"));
-  assert.equal(names.includes("lucy03"), false);
+  assert.ok(names.includes("lucy18"));
+  assert.equal(names.includes("lucy"), false);
+  assert.equal(names.includes("lucy01"), false);
+  assert.equal(fleet.get("lucy").source, "legacy");
   assert.equal(fleet.get("lucy21").status, "unprovisioned");
-  assert.equal(fleet.dispatchable().length, 12);
+  assert.equal(fleet.dispatchable().length, 10);
 });
