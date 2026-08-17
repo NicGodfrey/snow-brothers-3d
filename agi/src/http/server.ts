@@ -2,11 +2,17 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { AgiError } from "../errors.ts";
 import type { ControlPlane } from "../plane.ts";
 import type { AskRequest, QaMode } from "../types.ts";
+import { authorize } from "./auth.ts";
+import { assertBindAuth } from "./bind.ts";
+import { readJsonBody } from "./body.ts";
+import { json } from "./json.ts";
+import { handleLucy } from "./lucy-routes.ts";
 
 export function startServer(plane: ControlPlane): Promise<{
   close: () => Promise<void>;
   url: string;
 }> {
+  assertBindAuth(plane.config);
   const server = createServer((req, res) => {
     void handle(plane, req, res);
   });
@@ -21,6 +27,7 @@ export function startServer(plane: ControlPlane): Promise<{
         url: `http://${plane.config.bind}:${port}`,
         close: () =>
           new Promise((done, fail) => {
+            plane.lucy.abortAll();
             server.close((err) => (err ? fail(err) : done()));
           }),
       });
@@ -34,7 +41,12 @@ async function handle(
   res: ServerResponse,
 ): Promise<void> {
   try {
-    if (!authorize(plane, req)) {
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, corsHeaders(req));
+      res.end();
+      return;
+    }
+    if (!authorize(plane.config, req)) {
       json(res, 401, { error: { code: "unauthorized", message: "Bearer token required" } });
       return;
     }
@@ -48,6 +60,7 @@ async function handle(
         sessionMode: plane.config.sessionMode,
         modelId: plane.config.modelId,
         modelParams: plane.config.modelParams,
+        lucy: plane.lucy.health(),
         fleet: plane.registry.snapshot({
           transport: plane.config.transport,
           maxInFlight: plane.config.maxInFlight,
@@ -56,6 +69,7 @@ async function handle(
       });
       return;
     }
+    if (await handleLucy(plane, req, res, url)) return;
     if (req.method === "GET" && path === "/v1/fleet") {
       json(
         res,
@@ -85,31 +99,33 @@ async function handle(
       return;
     }
     if (req.method === "POST" && path === "/v1/ask") {
-      json(res, 200, await plane.scheduler.submit(await readAsk(req, "ask")));
+      json(res, 200, await plane.scheduler.submit(await readAsk(req, "ask", plane)));
       return;
     }
     if (req.method === "POST" && path === "/v1/fanout") {
-      json(res, 200, await plane.scheduler.submit(await readAsk(req, "fanout")));
+      json(res, 200, await plane.scheduler.submit(await readAsk(req, "fanout", plane)));
       return;
     }
     if (req.method === "POST" && path === "/v1/debate") {
-      json(res, 200, await plane.scheduler.submit(await readAsk(req, "debate")));
+      json(res, 200, await plane.scheduler.submit(await readAsk(req, "debate", plane)));
       return;
     }
     if (req.method === "POST" && path === "/v1/vote") {
-      json(res, 200, await plane.scheduler.submit(await readAsk(req, "vote")));
+      json(res, 200, await plane.scheduler.submit(await readAsk(req, "vote", plane)));
       return;
     }
     if (req.method === "POST" && path === "/v1/broadcast") {
-      json(res, 200, await plane.scheduler.submit(await readAsk(req, "broadcast")));
+      json(res, 200, await plane.scheduler.submit(await readAsk(req, "broadcast", plane)));
       return;
     }
     if (req.method === "POST" && path === "/v1/specialist") {
-      json(res, 200, await plane.scheduler.submit(await readAsk(req, "specialist")));
+      json(res, 200, await plane.scheduler.submit(await readAsk(req, "specialist", plane)));
       return;
     }
     if (req.method === "POST" && path === "/v1/fleet/provision") {
-      const body = (await readJson(req)) as { limit?: number };
+      const body = (await readJsonBody(req, plane.config.maxBodyBytes)) as {
+        limit?: number;
+      };
       json(res, 200, await plane.scheduler.provision(body.limit ?? 101));
       return;
     }
@@ -118,7 +134,7 @@ async function handle(
     if (error instanceof AgiError) {
       json(res, error.status, {
         error: { code: error.code, message: error.message },
-      });
+      }, error.status === 503 ? { "retry-after": "2" } : {});
       return;
     }
     json(res, 500, {
@@ -130,29 +146,20 @@ async function handle(
   }
 }
 
-function authorize(plane: ControlPlane, req: IncomingMessage): boolean {
-  const token = plane.config.controlToken;
-  if (!token) return true;
-  return req.headers.authorization === `Bearer ${token}`;
-}
-
-async function readAsk(req: IncomingMessage, mode: QaMode): Promise<AskRequest> {
-  const body = (await readJson(req)) as AskRequest;
+async function readAsk(
+  req: IncomingMessage,
+  mode: QaMode,
+  plane: ControlPlane,
+): Promise<AskRequest> {
+  const body = (await readJsonBody(req, plane.config.maxBodyBytes)) as AskRequest;
   return { ...body, mode: body.mode ?? mode };
 }
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(Buffer.from(chunk));
-  if (chunks.length === 0) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-}
-
-function json(res: ServerResponse, status: number, body: unknown): void {
-  const payload = JSON.stringify(body);
-  res.writeHead(status, {
-    "content-type": "application/json; charset=utf-8",
-    "content-length": Buffer.byteLength(payload),
-  });
-  res.end(payload);
+function corsHeaders(req: IncomingMessage): Record<string, string> {
+  return {
+    "access-control-allow-origin": String(req.headers.origin ?? "*"),
+    "access-control-allow-headers": "authorization, content-type",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-max-age": "600",
+  };
 }

@@ -16,6 +16,8 @@ async function main(): Promise<void> {
         hasApiKey: Boolean(plane.config.apiKey),
         dispatchable: plane.registry.dispatchable().length,
         maxInFlight: plane.config.maxInFlight,
+        lucy: plane.lucy.health(),
+        remote: !["127.0.0.1", "::1", "localhost"].includes(plane.config.bind),
       }),
     );
     return;
@@ -62,8 +64,13 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (command === "lucy-pending") {
+    console.log(JSON.stringify({ items: plane.lucy.pending() }, null, 2));
+    return;
+  }
+
   console.error(
-    "Usage: cli.ts <serve|status|ask|fanout|debate|vote|broadcast|specialist|provision> [question]",
+    "Usage: cli.ts <serve|status|ask|fanout|debate|vote|broadcast|specialist|provision|lucy-pending> [question]",
   );
   process.exitCode = 1;
 }

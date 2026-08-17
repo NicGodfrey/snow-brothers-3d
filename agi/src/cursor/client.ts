@@ -1,11 +1,13 @@
 import { TransportError } from "../errors.ts";
 import type { AgiConfig } from "../config.ts";
 import type { ConversationMode } from "../types.ts";
+import { parseSseStream } from "../sse.ts";
 import {
   isTerminal,
   type CreateAgentInput,
   type CursorAgent,
   type CursorRun,
+  type CursorStreamEvent,
   type CursorTransport,
 } from "./types.ts";
 
@@ -94,6 +96,49 @@ export class OfficialCursorClient implements CursorTransport {
       504,
       true,
     );
+  }
+
+  async *streamRun(
+    id: string,
+    runId: string,
+    options?: { signal?: AbortSignal },
+  ): AsyncIterable<CursorStreamEvent> {
+    const url = `${this.config.apiBase}/v1/agents/${id}/runs/${runId}/stream`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${this.config.apiKey}`,
+        Accept: "text/event-stream",
+      },
+      signal: options?.signal,
+    });
+    if (res.status === 410) {
+      const run = await this.getRun(id, runId);
+      yield {
+        event: "result",
+        data: { runId, status: run.status, text: run.result ?? "" },
+      };
+      yield { event: "done", data: {} };
+      return;
+    }
+    if (!res.ok || !res.body) {
+      const body = await safeText(res);
+      throw new TransportError(
+        `http_${res.status}`,
+        `Cursor API ${res.status} on /v1/agents/${id}/runs/${runId}/stream: ${body.slice(0, 400)}`,
+        res.status,
+        res.status >= 500,
+      );
+    }
+    for await (const frame of parseSseStream(iterableBody(res.body))) {
+      let data: unknown = frame.data;
+      try {
+        data = JSON.parse(frame.data);
+      } catch {
+        data = frame.data;
+      }
+      yield { event: frame.event, data, id: frame.id };
+    }
   }
 
   async listModels(): Promise<unknown> {
@@ -186,4 +231,19 @@ async function safeText(res: Response): Promise<string> {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function* iterableBody(
+  body: ReadableStream<Uint8Array>,
+): AsyncGenerator<Uint8Array> {
+  const reader = body.getReader();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) return;
+      if (value) yield value;
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }

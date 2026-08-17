@@ -31,7 +31,7 @@ Without `CURSOR_API_KEY` the plane starts in `mock` transport so environment boo
 
 The fleet is bound to **Claude Fable 5 Max**: `model.id=claude-fable-5` with `thinking=true`, `context=1m`, `effort=max`. Override with `AGI_MODEL_ID` / `AGI_MODEL_PARAMS`.
 
-Optional: `AGI_CONTROL_TOKEN` (Bearer auth), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (127.0.0.1), `AGI_TRANSPORT` (`official` or `mock`), `AGI_SESSION_MODE` (`fresh` default, or `continue`).
+Optional: `AGI_CONTROL_TOKEN` (Bearer auth; **required** when `AGI_BIND` is not loopback), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (`127.0.0.1` default; `0.0.0.0` for remote), `AGI_TRANSPORT` (`official` or `mock`), `AGI_SESSION_MODE` (`fresh` default, or `continue`), `AGI_MAX_BODY_BYTES` (20 MiB), `AGI_STREAM_IDLE_TIMEOUT_MS` (90s, same default as Claude Code `CLAUDE_STREAM_IDLE_TIMEOUT_MS`).
 
 Every new `/v1/ask` (and the other Q&A routes) starts a **new conversation**: the plane creates a new official agent for that turn and archives the previous one on the slot. Official `POST /v1/agents/{id}/runs` cannot reset chat history. Set `AGI_SESSION_MODE=continue` only if you want follow-up on the same agent.
 
@@ -61,3 +61,44 @@ CLI: `npx tsx src/cli.ts status|ask|fanout|debate|vote|broadcast|specialist|prov
 Task-spawned copies (lucy and lucy01–lucy20) are visible to `GET /v1/agents/{id}` but follow-up `POST /v1/agents/{id}/runs` returns `400` *legacy workflow that is no longer supported*. The scheduler marks those slots `error`. Remote Q&A requires agents created through `POST /v1/agents` (the provision endpoint).
 
 This Cloud Agent VM is not a public internet hostname. Call the plane on localhost inside the VM, or run `agi/` on your own machine with the same official key.
+
+## Remote lucy streaming
+
+`POST /v1/lucy/ask` (alias `POST /v1/lucy/chat`) picks a **random idle lucy** and opens an SSE conversation.
+
+| Rule | Behavior |
+| --- | --- |
+| Idle pick | Uniform random among idle slots. Pin with `target` or `conversationId`. |
+| Large prompt | Upload the whole question in one JSON body (default 20 MiB). The idle watchdog does **not** run during the upload. |
+| Stream | `text/event-stream` events: `meta`, `delta`, `thinking`, `heartbeat`, `result`, `error`, `done`. |
+| Stall | After the stream opens, **no model tokens** for `AGI_STREAM_IDLE_TIMEOUT_MS` (default 90s, Claude Code watchdog) aborts the job. Heartbeats keep the TCP connection alive and do **not** reset the timer. |
+| Remote | `AGI_BIND=0.0.0.0` plus `AGI_CONTROL_TOKEN`. Requests need `Authorization: Bearer <token>`. |
+
+```bash
+export AGI_BIND=0.0.0.0
+export AGI_CONTROL_TOKEN='long random token'
+npm start
+
+curl -N http://HOST:8787/v1/lucy/ask \
+  -H "authorization: Bearer $AGI_CONTROL_TOKEN" \
+  -H 'content-type: application/json' \
+  -H 'accept: text/event-stream' \
+  -d '{"question":"huge paste or a short question"}'
+
+# or a file-sized prompt
+node scripts/lucy-chat.mjs --file prompt.txt
+```
+
+`GET /v1/lucy/pool` shows idle/busy counts. `stream: false` returns JSON instead of SSE.
+
+### Which lucy, and how tokens actually arrive
+
+| Pool (`pool` / `AGI_LUCY_POOL`) | Who is picked | Live tokens |
+| --- | --- | --- |
+| `auto` (default) | Official idle slots when the official transport is up; otherwise copies | Official SSE, or mock/queue for copies |
+| `copies` | Original lucy + `lucy-copy-01`…`10` from `data/lucy-copies.json` | **Queue**: Task copies cannot use official `createRun` (legacy-workflow 400). The stream waits; a parent drain posts `POST /v1/lucy/jobs/:id/tokens` then `/complete`. `npm run lucy:drain` lists waiting jobs. Mock transport answers immediately. |
+| `official` | Random idle official slot (lucy02, lucy03, …) | Official `createRun` + `GET /v1/agents/{id}/runs/{runId}/stream`. |
+
+This plane does **not** expose an Anthropic `/v1/messages` relay. Tools that probe unofficial Claude midpoints (including cctest.ai) are out of scope and must not receive Cursor API keys.
+
+Claude Code 2.1.105+ also has a 5-minute no-data abort. Raise the same knob here with `AGI_STREAM_IDLE_TIMEOUT_MS=300000` or `CLAUDE_STREAM_IDLE_TIMEOUT_MS=300000`.

@@ -16,7 +16,7 @@
     {
       "name": "agi-logs",
       "command": "tail -n +1 -f /tmp/agi-control-plane.log",
-      "description": "Logs for the official Cursor Cloud Agents control plane on 127.0.0.1:8787."
+      "description": "Logs for the AGI control plane and remote lucy SSE gateway on port 8787."
     },
     {
       "name": "cat-mouse-dev",

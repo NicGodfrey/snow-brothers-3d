@@ -1,3 +1,5 @@
+import { defaultLucyCopiesPath } from "./lucy/copies.ts";
+import type { LucyFulfillName, LucyPoolName } from "./lucy/types.ts";
 import {
   DEFAULT_MAX_IN_FLIGHT,
   FABLE5_MAX_MODEL_ID,
@@ -6,6 +8,9 @@ import {
   type SessionMode,
   type TransportName,
 } from "./types.ts";
+
+export const DEFAULT_MAX_BODY_BYTES = 20 * 1024 * 1024;
+export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 90_000;
 
 export interface AgiConfig {
   apiKey: string | undefined;
@@ -23,13 +28,20 @@ export interface AgiConfig {
   sessionMode: SessionMode;
   modelId: string;
   modelParams: ModelParam[];
+  maxBodyBytes: number;
+  streamIdleTimeoutMs: number;
+  streamHeartbeatMs: number;
+  lucyPool: LucyPoolName;
+  lucyFulfill: LucyFulfillName;
+  lucyCopiesPath: string;
+  lucyMockDelayMs: number;
 }
 
-function envInt(name: string, fallback: number): number {
+function envInt(name: string, fallback: number, min = 1): number {
   const raw = process.env[name];
   if (!raw) return fallback;
   const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
+  return Number.isFinite(n) && n >= min ? n : fallback;
 }
 
 export function loadConfig(overrides: Partial<AgiConfig> = {}): AgiConfig {
@@ -67,8 +79,31 @@ export function loadConfig(overrides: Partial<AgiConfig> = {}): AgiConfig {
       process.env.AGI_MODEL_PARAMS,
       FABLE5_MAX_PARAMS,
     ),
+    maxBodyBytes: envInt("AGI_MAX_BODY_BYTES", DEFAULT_MAX_BODY_BYTES),
+    streamIdleTimeoutMs: envInt(
+      "AGI_STREAM_IDLE_TIMEOUT_MS",
+      envInt("CLAUDE_STREAM_IDLE_TIMEOUT_MS", DEFAULT_STREAM_IDLE_TIMEOUT_MS),
+    ),
+    streamHeartbeatMs: envInt("AGI_STREAM_HEARTBEAT_MS", 15_000, 0),
+    lucyPool: parseLucyPool(process.env.AGI_LUCY_POOL ?? "auto"),
+    lucyFulfill: parseLucyFulfill(process.env.AGI_LUCY_FULFILL),
+    lucyCopiesPath:
+      process.env.AGI_LUCY_COPIES_PATH?.trim() || defaultLucyCopiesPath(),
+    lucyMockDelayMs: envInt("AGI_LUCY_MOCK_DELAY_MS", 5, 0),
     ...overrides,
   };
+}
+
+export function parseLucyPool(raw: string | undefined): LucyPoolName {
+  if (raw === "copies" || raw === "official" || raw === "auto") return raw;
+  return "auto";
+}
+
+export function parseLucyFulfill(raw: string | undefined): LucyFulfillName {
+  if (raw === "mock" || raw === "queue" || raw === "official" || raw === "auto") {
+    return raw;
+  }
+  return "auto";
 }
 
 export function parseModelParams(

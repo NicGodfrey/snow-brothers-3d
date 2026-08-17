@@ -20,6 +20,13 @@ fi
   cd "$root/agi"
   export AGI_MODEL_ID="${AGI_MODEL_ID:-claude-fable-5}"
   export AGI_MODEL_PARAMS="${AGI_MODEL_PARAMS:-thinking=true,context=1m,effort=max}"
+  export AGI_MAX_BODY_BYTES="${AGI_MAX_BODY_BYTES:-20971520}"
+  export AGI_STREAM_IDLE_TIMEOUT_MS="${AGI_STREAM_IDLE_TIMEOUT_MS:-90000}"
+  export AGI_STREAM_HEARTBEAT_MS="${AGI_STREAM_HEARTBEAT_MS:-15000}"
+  export AGI_LUCY_POOL="${AGI_LUCY_POOL:-auto}"
+  if [[ -n "${AGI_CONTROL_TOKEN:-}" ]]; then
+    export AGI_BIND="${AGI_BIND:-0.0.0.0}"
+  fi
   nohup node --import tsx src/cli.ts serve >>"$log" 2>&1 &
   echo $! >"$root/agi/data/runtime/agi.pid"
 )

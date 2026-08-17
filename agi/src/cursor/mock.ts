@@ -5,6 +5,7 @@ import type {
   CreateAgentInput,
   CursorAgent,
   CursorRun,
+  CursorStreamEvent,
   CursorTransport,
 } from "./types.ts";
 
@@ -122,6 +123,26 @@ export class MockCursorClient implements CursorTransport {
       await this.delay();
     }
     throw new TransportError("run_timeout", "mock timeout", 504, true);
+  }
+
+  async *streamRun(
+    _id: string,
+    runId: string,
+    options?: { signal?: AbortSignal },
+  ): AsyncIterable<CursorStreamEvent> {
+    const run = this.runs.get(runId);
+    if (!run) throw new TransportError("http_404", `Unknown run ${runId}`, 404);
+    const text = run.result ?? "";
+    for (let i = 0; i < text.length; i += 16) {
+      if (options?.signal?.aborted) return;
+      yield { event: "assistant", data: { text: text.slice(i, i + 16) } };
+      if (this.latencyMs > 0) await this.delay();
+    }
+    run.status = "FINISHED";
+    const agent = this.agents.get(run.agentId);
+    if (agent) agent.busy = false;
+    yield { event: "result", data: { runId, status: "FINISHED", text } };
+    yield { event: "done", data: {} };
   }
 
   private async delay(): Promise<void> {

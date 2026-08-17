@@ -36,6 +36,12 @@ export interface CreateAgentInput {
   modelParams?: ModelParam[];
 }
 
+export interface CursorStreamEvent {
+  event: string;
+  data: unknown;
+  id?: string;
+}
+
 export interface CursorTransport {
   getAgent(id: string): Promise<CursorAgent>;
   createRun(
@@ -49,6 +55,11 @@ export interface CursorTransport {
   ): Promise<{ agent: CursorAgent; run: CursorRun }>;
   waitForRun(id: string, runId: string): Promise<CursorRun>;
   archiveAgent(id: string): Promise<void>;
+  streamRun(
+    id: string,
+    runId: string,
+    options?: { signal?: AbortSignal },
+  ): AsyncIterable<CursorStreamEvent>;
 }
 
 export function isTerminal(status: CursorRunStatus): boolean {
