@@ -31,7 +31,7 @@ Without `CURSOR_API_KEY` the plane starts in `mock` transport so environment boo
 
 The fleet is bound to **Claude Fable 5 Max**: `model.id=claude-fable-5` with `thinking=true`, `context=1m`, `effort=max`. Override with `AGI_MODEL_ID` / `AGI_MODEL_PARAMS`.
 
-Optional: `AGI_CONTROL_TOKEN` (Bearer auth; **required** when `AGI_BIND` is not loopback), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (`127.0.0.1` default; `0.0.0.0` for remote), `AGI_TRANSPORT` (`official` or `mock`), `AGI_SESSION_MODE` (`fresh` default, or `continue`), `AGI_MAX_BODY_BYTES` (20 MiB), `AGI_STREAM_IDLE_TIMEOUT_MS` (90s, same default as Claude Code `CLAUDE_STREAM_IDLE_TIMEOUT_MS`).
+Optional: `AGI_CONTROL_TOKEN` (Bearer auth; **required** when `AGI_BIND` is not loopback), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (`127.0.0.1` default; `0.0.0.0` for remote), `AGI_TRANSPORT` (`official` or `mock`), `AGI_SESSION_MODE` (`fresh` default, or `continue`), `AGI_MAX_BODY_BYTES` (20 MiB), `AGI_STREAM_IDLE_TIMEOUT_MS` (5 minutes, matching current Claude Code stalled-stream abort; the older watchdog default was 90s via `CLAUDE_STREAM_IDLE_TIMEOUT_MS`).
 
 Every new `/v1/ask` (and the other Q&A routes) starts a **new conversation**: the plane creates a new official agent for that turn and archives the previous one on the slot. Official `POST /v1/agents/{id}/runs` cannot reset chat history. Set `AGI_SESSION_MODE=continue` only if you want follow-up on the same agent.
 
@@ -71,7 +71,7 @@ This Cloud Agent VM is not a public internet hostname. Call the plane on localho
 | Idle pick | Uniform random among idle slots. Pin with `target` or `conversationId`. |
 | Large prompt | Upload the whole question in one JSON body (default 20 MiB). The idle watchdog does **not** run during the upload. |
 | Stream | `text/event-stream` events: `meta`, `delta`, `thinking`, `heartbeat`, `result`, `error`, `done`. |
-| Stall | After the stream opens, **no model tokens** for `AGI_STREAM_IDLE_TIMEOUT_MS` (default 90s, Claude Code watchdog) aborts the job. Heartbeats keep the TCP connection alive and do **not** reset the timer. |
+| Stall | After the stream opens, **no model tokens** for `AGI_STREAM_IDLE_TIMEOUT_MS` (default 5 minutes, Claude Code 2.1.105+ stalled-stream abort; set `90000` for the older watchdog) aborts the job. Heartbeats keep the TCP connection alive and do **not** reset the timer. |
 | Remote | `AGI_BIND=0.0.0.0` plus `AGI_CONTROL_TOKEN`. Requests need `Authorization: Bearer <token>`. |
 
 ```bash
@@ -101,4 +101,4 @@ node scripts/lucy-chat.mjs --file prompt.txt
 
 This plane does **not** expose an Anthropic `/v1/messages` relay. Tools that probe unofficial Claude midpoints (including cctest.ai) are out of scope and must not receive Cursor API keys.
 
-Claude Code 2.1.105+ also has a 5-minute no-data abort. Raise the same knob here with `AGI_STREAM_IDLE_TIMEOUT_MS=300000` or `CLAUDE_STREAM_IDLE_TIMEOUT_MS=300000`.
+The older Claude Code watchdog was 90 seconds (`CLAUDE_STREAM_IDLE_TIMEOUT_MS=90000`). Official Cloud Agents often think longer than that before the first token, so this plane defaults to five minutes.

@@ -35,7 +35,7 @@ test("health reports the lucy pool and remote ask streams tokens", async () => {
     };
     assert.equal(body.lucy.copies.total, 11);
     assert.equal(body.lucy.copies.idle, 11);
-    assert.equal(body.lucy.streamIdleTimeoutMs, 90_000);
+    assert.equal(body.lucy.streamIdleTimeoutMs, 300_000);
 
     const ask = await fetch(`${server.url}/v1/lucy/ask`, {
       method: "POST",

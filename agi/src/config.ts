@@ -10,7 +10,7 @@ import {
 } from "./types.ts";
 
 export const DEFAULT_MAX_BODY_BYTES = 20 * 1024 * 1024;
-export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 90_000;
+export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000;
 
 export interface AgiConfig {
   apiKey: string | undefined;

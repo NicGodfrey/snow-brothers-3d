@@ -1,7 +1,8 @@
 /**
  * Claude Code-style stream idle watchdog.
  *
- * Matches CLAUDE_STREAM_IDLE_TIMEOUT_MS (default 90s). Heartbeats keep the
+ * Matches Claude Code stalled-stream abort (default 5 minutes; the older
+ * CLAUDE_STREAM_IDLE_TIMEOUT_MS watchdog was 90s). Heartbeats keep the
  * HTTP connection alive but do not count as model data. Only token/thinking
  * /result events reset the timer. The timer starts after the stream opens,
  * never while the client is still uploading a large request body.
