@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snow Brothers 3D — Stage 11 · Crystal Cavern</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="hud">
+      <div class="hud-brand">SNOW BROTHERS 3D</div>
+      <div class="hud-stage">STAGE 11 · CRYSTAL CAVERN</div>
+      <div id="hud-status" class="hud-status">Clear every foe</div>
+      <div class="hud-controls">
+        <span>WASD / Arrows move</span>
+        <span>Space jump</span>
+        <span>J / Z throw snow</span>
+        <span>K / X kick snowball</span>
+      </div>
+    </div>
+    <div id="overlay" class="hidden">
+      <div id="overlay-title">STAGE CLEAR</div>
+      <div id="overlay-sub">Crystal Cavern secured</div>
+      <button id="restart-btn" type="button">Play again</button>
+    </div>
+    <canvas id="game"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
