@@ -278,3 +278,19 @@ export function stageById(id: string): StageDef | undefined {
 export const STORY_STAGES = STAGES.filter((stage) => stage.kind === 'story');
 export const ARCADE_STAGES = STAGES.filter((stage) => stage.kind === 'arcade');
 export const TIME_ATTACK_STAGES = STAGES.filter((stage) => stage.kind === 'timeAttack');
+
+export function findStage(chapter: number, index: number): StageDef | undefined {
+  return STORY_STAGES.find((stage) => stage.chapter === chapter && stage.index === index);
+}
+
+export function stagesOfChapter(chapter: number): readonly StageDef[] {
+  return STORY_STAGES.filter((stage) => stage.chapter === chapter);
+}
+
+export function lastAuthoredChapter(): number {
+  let max = 0;
+  for (const stage of STORY_STAGES) {
+    if (stage.chapter > max) max = stage.chapter;
+  }
+  return max;
+}
