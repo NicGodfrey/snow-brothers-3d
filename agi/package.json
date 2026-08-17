@@ -12,7 +12,8 @@
     "test": "tsc --noEmit -p tsconfig.json && node --import tsx --test --test-concurrency=1 tests/*.test.ts",
     "start": "node --import tsx src/cli.ts serve",
     "ask": "node --import tsx src/cli.ts ask",
-    "status": "node --import tsx src/cli.ts status"
+    "status": "node --import tsx src/cli.ts status",
+    "live:concurrent": "node scripts/live-concurrent.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
