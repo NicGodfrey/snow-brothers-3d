@@ -12,6 +12,7 @@ export interface AcquireInput {
 export class LucyPool {
   readonly copies: LucySlot[];
   readonly conversations = new Map<string, { name: string; kind: LucyKind }>();
+  readonly lastUsed = new Map<string, number>();
 
   constructor(
     copies: LucySlot[],
@@ -40,6 +41,18 @@ export class LucyPool {
       (s) => !blocked.has(s.name) && !blocked.has(s.agentId),
     );
     if (idle.length === 0) return null;
+    if (kind === "official") {
+      const warm = idle
+        .filter((s) => this.lastUsed.has(s.name))
+        .sort(
+          (a, b) => (this.lastUsed.get(b.name) ?? 0) - (this.lastUsed.get(a.name) ?? 0),
+        );
+      if (warm.length > 0) {
+        const top = warm.slice(0, Math.min(3, warm.length));
+        const index = Math.min(top.length - 1, Math.floor(this.rng() * top.length));
+        return top[index] ?? warm[0] ?? null;
+      }
+    }
     const index = Math.min(idle.length - 1, Math.floor(this.rng() * idle.length));
     return idle[index] ?? null;
   }
@@ -50,6 +63,7 @@ export class LucyPool {
   }
 
   release(name: string, kind: LucyKind): void {
+    this.lastUsed.set(name, Date.now());
     if (kind === "official") {
       const slot = this.registry.slots.find((s) => s.name === name);
       if (slot && slot.status === "busy") this.registry.mark(name, "idle");
@@ -71,6 +85,7 @@ export class LucyPool {
         total: officialSlots.length,
         idle: this.idleOfficial().length,
         busy: officialSlots.filter((s) => s.status === "busy").length,
+        warm: this.idleOfficial().filter((s) => this.lastUsed.has(s.name)).length,
       },
     };
   }

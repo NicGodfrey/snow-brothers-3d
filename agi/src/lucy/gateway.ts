@@ -7,6 +7,7 @@ import { AgiError } from "../errors.ts";
 import { formatSse } from "../sse.ts";
 import { StreamWatchdog } from "./watchdog.ts";
 import type { LucyPool } from "./pool.ts";
+import { classifyLucyLatency, wrapLucyChat } from "./prompt.ts";
 import type {
   LucyAskRequest,
   LucyFulfillName,
@@ -86,6 +87,12 @@ export class LucyGateway {
     });
     const fulfill = resolveFulfill(this.config, slot.kind);
     request.images = normalizeImages(request.images);
+    const latency = classifyLucyLatency({
+      question,
+      fast: request.fast,
+      imageCount: request.images?.length ?? 0,
+      conversationMode: request.conversationMode,
+    });
     const now = Date.now();
     const job: LucyJob = {
       id: `lucy-${randomUUID()}`,
@@ -104,6 +111,7 @@ export class LucyGateway {
       lastModelAtMs: now,
       imageCount: request.images?.length ?? 0,
       failover,
+      latency,
     };
     const abort = new AbortController();
     const watchdog = new StreamWatchdog(this.config.streamIdleTimeoutMs, () => {
@@ -137,6 +145,7 @@ export class LucyGateway {
       fulfill,
       failover,
       imageCount: job.imageCount,
+      latency,
       idleTimeoutMs: this.config.streamIdleTimeoutMs,
       maxBodyBytes: this.config.maxBodyBytes,
     });
@@ -323,15 +332,13 @@ export class LucyGateway {
     live: LiveJob,
     conversationMode?: "agent" | "plan",
   ): Promise<void> {
-    let run = await this.createOfficialRun(live, conversationMode);
-    while (run.status === "CREATING" && !live.abort.signal.aborted) {
-      await sleep(300, live.abort.signal);
-      run = await this.transport.getRun(live.job.agentId, run.id);
-    }
-    if (!live.abort.signal.aborted) {
-      await sleep(800, live.abort.signal);
-    }
-    for (let attempt = 0; attempt < 6 && live.job.status === "running"; attempt += 1) {
+    const run = await this.createOfficialRun(live, conversationMode);
+    this.emit(live, "status", {
+      phase: "streaming",
+      runId: run.id,
+      status: run.status,
+    });
+    for (let attempt = 0; attempt < 10 && live.job.status === "running"; attempt += 1) {
       let retry = false;
       let sawModel = false;
       try {
@@ -394,7 +401,7 @@ export class LucyGateway {
         }
       }
       if (!retry || live.job.status !== "running") break;
-      await sleep(400 * 2 ** attempt, live.abort.signal);
+      await sleep(Math.min(50 * 2 ** attempt, 400), live.abort.signal);
     }
     if (live.job.status === "running") {
       const finished = await this.transport.waitForRun(live.job.agentId, run.id);
@@ -412,7 +419,7 @@ export class LucyGateway {
         const run = await this.transport.createRun(
           live.job.agentId,
           {
-            prompt: live.job.question,
+            prompt: wrapLucyChat(live.job.question, live.job.latency ?? "fast"),
             images: live.request.images,
             mode: conversationMode ?? live.request.conversationMode,
             mcpServers: live.request.mcpServers,

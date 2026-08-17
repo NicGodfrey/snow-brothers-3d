@@ -64,11 +64,13 @@ This Cloud Agent VM is not a public internet hostname. Call the plane on localho
 
 ## Remote lucy streaming
 
-`POST /v1/lucy/ask` (alias `POST /v1/lucy/chat`) picks a **random idle lucy** and opens an SSE conversation.
+`POST /v1/lucy/ask` (alias `POST /v1/lucy/chat`) picks an idle lucy and opens an SSE conversation. Simple turns aim for a **second-level** reply; longer coding questions still start streaming as soon as the official run exists.
 
 | Rule | Behavior |
 | --- | --- |
-| Idle pick | Uniform random among idle slots. Pin with `target` or `conversationId`. |
+| Idle pick | Prefer a recently used (warm) official slot so the VM is already up. Pin with `target` or `conversationId`. |
+| Fast chat | Short questions default to `latency=fast`: no tools, no repo walk. Set `fast: false` or ask a coding question to allow tools. |
+| Attach | Official stream is opened immediately after `createRun`. No fixed 800ms wait; `stream_unavailable` retries in 50–400ms. |
 | Large prompt | Upload the whole question in one JSON body (default 20 MiB). The idle watchdog does **not** run during the upload. |
 | Stream | `text/event-stream` events: `meta`, `delta`, `thinking`, `heartbeat`, `result`, `error`, `done`. |
 | Stall | After the stream opens, **no model tokens** for `AGI_STREAM_IDLE_TIMEOUT_MS` (default 5 minutes, Claude Code 2.1.105+ stalled-stream abort; set `90000` for the older watchdog) aborts the job. Heartbeats keep the TCP connection alive and do **not** reset the timer. |

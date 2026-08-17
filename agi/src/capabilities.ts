@@ -34,7 +34,9 @@ export const CAPABILITIES = {
     "GET /v1/capabilities": "this map",
     "GET /v1/agents/:id/conversation": "stitched run results as a transcript",
     "GET /v1/agents/:id/runs/:runId/wait": "block until the run is terminal",
-    "POST /v1/lucy/ask": "random idle lucy + SSE conversation",
+    "POST /v1/lucy/ask": "idle lucy + SSE; simple turns skip tools for second-level replies",
+    lowLatency:
+      "attach official stream immediately (no 800ms wait); prefer warm official slots; fast/full chat prompts",
     conversationId: "pin the same lucy across turns",
     busyFailover: "on 409 agent_busy, pick another idle official lucy",
     stallWatchdog: "Claude Code-style idle abort; heartbeats do not reset",

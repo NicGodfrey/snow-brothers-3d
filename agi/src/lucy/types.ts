@@ -26,6 +26,8 @@ export interface LucyAskRequest {
   images?: PromptImageIn[];
   failover?: boolean;
   mcpServers?: unknown[];
+  /** Force no-tools chat (true) or allow tools (false). Omit to auto-detect. */
+  fast?: boolean;
 }
 
 export interface LucyTurn {
@@ -62,11 +64,12 @@ export interface LucyJob {
   runId?: string;
   imageCount?: number;
   failover?: boolean;
+  latency?: "fast" | "full";
 }
 
 export interface LucyPoolSnapshot {
   copies: { total: number; idle: number; busy: number };
-  official: { total: number; idle: number; busy: number };
+  official: { total: number; idle: number; busy: number; warm: number };
 }
 
 export interface LucyHealth extends LucyPoolSnapshot {

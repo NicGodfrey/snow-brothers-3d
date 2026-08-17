@@ -319,6 +319,38 @@ test("lucy conversation transcript and tool_call events", async () => {
   }
 });
 
+test("official simple ask skips the old 800ms attach delay", async () => {
+  const { server } = await serve({
+    lucyPool: "official",
+    lucyFulfill: "official",
+  });
+  try {
+    const started = Date.now();
+    const ask = await fetch(`${server.url}/v1/lucy/ask`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        question: "LIVE OK",
+        stream: false,
+        pool: "official",
+      }),
+    });
+    const elapsed = Date.now() - started;
+    assert.equal(ask.status, 200);
+    const job = (await ask.json()) as {
+      status: string;
+      latency: string;
+      answer: string;
+    };
+    assert.equal(job.status, "succeeded");
+    assert.equal(job.latency, "fast");
+    assert.match(job.answer, /LIVE OK/);
+    assert.ok(elapsed < 300, `simple official ask too slow: ${elapsed}ms`);
+  } finally {
+    await server.close();
+  }
+});
+
 test("official pool streams through createRun + streamRun", async () => {
   const { server } = await serve({
     lucyPool: "official",

@@ -51,6 +51,19 @@ test("acquire fails when every copy is busy", () => {
   );
 });
 
+test("official pick prefers a recently released warm slot", () => {
+  const lucy = pool(() => 0.99);
+  const first = lucy.acquire({
+    pool: "official",
+    conversationId: "warm-1",
+    target: "lucy02",
+  });
+  lucy.release(first.name, "official");
+  const picked = lucy.pickIdle("official");
+  assert.equal(picked?.name, "lucy02");
+  assert.equal(lucy.snapshot().official.warm, 1);
+});
+
 test("conversation reuses the same idle lucy", () => {
   const lucy = pool(() => 0);
   const first = lucy.acquire({ pool: "copies", conversationId: "conv-a" });
