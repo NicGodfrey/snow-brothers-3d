@@ -159,6 +159,7 @@ export class PlayScene implements Scene {
 
   render(ctx: SceneContext): void {
     const { renderer, width, height } = ctx;
+    applyAmbient(renderer, ambientFor(this.stage));
     const camera = cameraFor(this.stage, width, height, this.mouse.x, this.mouse.y, this.app.settings.screenShake ? this.heat * 0.15 : 0);
     renderer.begin(camera);
     renderer.clear('#120e0b');
@@ -381,6 +382,22 @@ export function worldOf(stage: StageDef, x: number, y: number): { x: number; y: 
     return { x: (x + 0.5) * stage.tileSize, y: (y + 0.5) * stage.tileSize };
   }
   return { x, y };
+}
+
+/**
+ * Base light level for a stage, from the authored night level plus the theme's
+ * ambient. Without this the renderer keeps its 0.22 default and every stage
+ * renders at roughly a fifth of its palette brightness.
+ */
+export function ambientFor(stage: StageDef): number {
+  const palette = PALETTE_BY_ID[stage.theme];
+  const themeLight = palette ? palette.ambientLight : 0.55;
+  return Math.max(0.35, Math.min(0.95, stage.ambient * 0.5 + themeLight * 0.6));
+}
+
+function applyAmbient(renderer: RendererLike, value: number): void {
+  const capable = renderer as RendererLike & { setAmbient?: (value: number) => void };
+  if (typeof capable.setAmbient === 'function') capable.setAmbient(value);
 }
 
 export function cameraFor(
