@@ -1,0 +1,35 @@
+name: agi-and-game
+
+on:
+  push:
+    branches: [main, "cursor/**"]
+  pull_request:
+
+jobs:
+  agi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+        working-directory: agi
+      - run: npm test
+        working-directory: agi
+        env:
+          AGI_TRANSPORT: mock
+
+  cat-mouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+        working-directory: cat-mouse
+      - run: npm test
+        working-directory: cat-mouse
+      - run: npm run build
+        working-directory: cat-mouse

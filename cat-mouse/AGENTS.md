@@ -4,6 +4,8 @@ Lucy (`bc-9a1ae0da-1b80-5fe3-985e-94bc5ea1f3eb`) is tech lead. She may spawn hig
 
 Do **not** `git commit`, `git push`, or open PRs. The parent cloud agent owns git.
 
+The 101-slot fleet orchestrator lives in `/workspace/agi`. Game leads must not edit it. Remote Q&A goes through the official Cloud Agents API only.
+
 ## Parallel ownership (do not write outside your tree)
 
 | Agent name | Owns | Must not touch |

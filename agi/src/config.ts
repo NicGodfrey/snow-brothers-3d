@@ -1,0 +1,55 @@
+import { DEFAULT_MAX_IN_FLIGHT, type TransportName } from "./types.ts";
+
+export interface AgiConfig {
+  apiKey: string | undefined;
+  apiBase: string;
+  repoUrl: string;
+  startingRef: string;
+  maxInFlight: number;
+  port: number;
+  bind: string;
+  controlToken: string | undefined;
+  transport: TransportName;
+  pollMs: number;
+  pollTimeoutMs: number;
+  fleetPath: string | undefined;
+}
+
+function envInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) return fallback;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+export function loadConfig(overrides: Partial<AgiConfig> = {}): AgiConfig {
+  const apiKey = process.env.CURSOR_API_KEY?.trim() || undefined;
+  const requested = (process.env.AGI_TRANSPORT?.trim() ||
+    (apiKey ? "official" : "mock")) as TransportName;
+  const transport: TransportName =
+    requested === "official" && !apiKey ? "mock" : requested;
+
+  return {
+    apiKey,
+    apiBase: (
+      process.env.CURSOR_API_BASE?.trim() || "https://api.cursor.com"
+    ).replace(/\/$/, ""),
+    repoUrl:
+      process.env.AGI_REPO_URL?.trim() ||
+      "https://github.com/NicGodfrey/snow-brothers-3d",
+    startingRef:
+      process.env.AGI_STARTING_REF?.trim() || "cursor/cat-mouse-game-25c6",
+    maxInFlight: Math.min(
+      envInt("AGI_MAX_IN_FLIGHT", DEFAULT_MAX_IN_FLIGHT),
+      100,
+    ),
+    port: envInt("AGI_PORT", 8787),
+    bind: process.env.AGI_BIND?.trim() || "127.0.0.1",
+    controlToken: process.env.AGI_CONTROL_TOKEN?.trim() || undefined,
+    transport,
+    pollMs: envInt("AGI_POLL_MS", 2000),
+    pollTimeoutMs: envInt("AGI_POLL_TIMEOUT_MS", 15 * 60 * 1000),
+    fleetPath: process.env.AGI_FLEET_PATH?.trim() || undefined,
+    ...overrides,
+  };
+}
