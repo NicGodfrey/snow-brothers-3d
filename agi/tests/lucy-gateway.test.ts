@@ -190,6 +190,32 @@ test("conversationId pins the same lucy across turns", async () => {
   }
 });
 
+test("official stream retries after stream_unavailable", async () => {
+  const { control, server } = await serve({
+    lucyPool: "official",
+    lucyFulfill: "official",
+  });
+  try {
+    (control.transport as import("../src/cursor/mock.ts").MockCursorClient).streamUnavailableOnce =
+      true;
+    const ask = await fetch(`${server.url}/v1/lucy/ask`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify({
+        question: "LIVE OK",
+        stream: false,
+        pool: "official",
+      }),
+    });
+    assert.equal(ask.status, 200);
+    const job = (await ask.json()) as { status: string; answer: string };
+    assert.equal(job.status, "succeeded");
+    assert.match(job.answer, /LIVE OK/);
+  } finally {
+    await server.close();
+  }
+});
+
 test("official pool streams through createRun + streamRun", async () => {
   const { server } = await serve({
     lucyPool: "official",

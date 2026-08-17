@@ -20,6 +20,7 @@ export class MockCursorClient implements CursorTransport {
   readonly runs = new Map<string, CursorRun>();
   latencyMs = 5;
   failNext = false;
+  streamUnavailableOnce = false;
   lastCreate?: CreateAgentInput;
 
   constructor(seedIds: string[] = []) {
@@ -132,6 +133,14 @@ export class MockCursorClient implements CursorTransport {
   ): AsyncIterable<CursorStreamEvent> {
     const run = this.runs.get(runId);
     if (!run) throw new TransportError("http_404", `Unknown run ${runId}`, 404);
+    if (this.streamUnavailableOnce) {
+      this.streamUnavailableOnce = false;
+      yield {
+        event: "error",
+        data: { code: "stream_unavailable", message: "Run stream is no longer available" },
+      };
+      return;
+    }
     const text = run.result ?? "";
     for (let i = 0; i < text.length; i += 16) {
       if (options?.signal?.aborted) return;

@@ -257,37 +257,69 @@ export class LucyGateway {
     live: LiveJob,
     conversationMode?: "agent" | "plan",
   ): Promise<void> {
-    const run = await this.transport.createRun(
+    let run = await this.transport.createRun(
       live.job.agentId,
       live.job.question,
       conversationMode,
     );
-    for await (const frame of this.transport.streamRun(live.job.agentId, run.id, {
-      signal: live.abort.signal,
-    })) {
-      if (live.abort.signal.aborted) return;
-      if (frame.event === "assistant" || frame.event === "delta") {
-        const text = textOf(frame.data);
-        if (text) {
-          live.job.answer += text;
-          this.emitModel(live, "delta", { text });
+    while (run.status === "CREATING" && !live.abort.signal.aborted) {
+      await sleep(300, live.abort.signal);
+      run = await this.transport.getRun(live.job.agentId, run.id);
+    }
+    for (let attempt = 0; attempt < 6 && live.job.status === "running"; attempt += 1) {
+      let retry = false;
+      let sawModel = false;
+      for await (const frame of this.transport.streamRun(live.job.agentId, run.id, {
+        signal: live.abort.signal,
+      })) {
+        if (live.abort.signal.aborted) return;
+        if (frame.event === "assistant" || frame.event === "delta") {
+          const text = textOf(frame.data);
+          if (text) {
+            sawModel = true;
+            live.job.answer += text;
+            this.emitModel(live, "delta", { text });
+          }
+        } else if (frame.event === "thinking") {
+          const text = textOf(frame.data);
+          if (text) {
+            sawModel = true;
+            this.emitModel(live, "thinking", { text });
+          }
+        } else if (frame.event === "interaction_update") {
+          const data = asRecord(frame.data);
+          const text = textOf(data);
+          if (data.type === "text-delta" && text) {
+            sawModel = true;
+            live.job.answer += text;
+            this.emitModel(live, "delta", { text });
+          } else if (data.type === "thinking-delta" && text) {
+            sawModel = true;
+            this.emitModel(live, "thinking", { text });
+          } else if (data.type === "token-delta") {
+            sawModel = true;
+            live.watchdog.touch();
+          }
+        } else if (frame.event === "result") {
+          const text = textOf(frame.data) || live.job.answer;
+          this.complete(live.job.id, text);
+          return;
+        } else if (frame.event === "error") {
+          const data = asRecord(frame.data);
+          if (data.code === "stream_unavailable" && !sawModel) {
+            retry = true;
+            break;
+          }
+          this.fail(
+            live.job.id,
+            String(data.code ?? "official_stream_error"),
+            String(data.message ?? "Official stream error"),
+          );
+          return;
         }
-      } else if (frame.event === "thinking") {
-        const text = textOf(frame.data);
-        if (text) this.emitModel(live, "thinking", { text });
-      } else if (frame.event === "result") {
-        const text = textOf(frame.data) || live.job.answer;
-        this.complete(live.job.id, text);
-        return;
-      } else if (frame.event === "error") {
-        const data = asRecord(frame.data);
-        this.fail(
-          live.job.id,
-          String(data.code ?? "official_stream_error"),
-          String(data.message ?? "Official stream error"),
-        );
-        return;
       }
+      if (!retry || live.job.status !== "running") break;
+      await sleep(400 * 2 ** attempt, live.abort.signal);
     }
     if (live.job.status === "running") {
       const finished = await this.transport.waitForRun(live.job.agentId, run.id);
