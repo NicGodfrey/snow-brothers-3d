@@ -1,5 +1,8 @@
 import {
   DEFAULT_MAX_IN_FLIGHT,
+  FABLE5_MAX_MODEL_ID,
+  FABLE5_MAX_PARAMS,
+  type ModelParam,
   type SessionMode,
   type TransportName,
 } from "./types.ts";
@@ -18,7 +21,8 @@ export interface AgiConfig {
   pollTimeoutMs: number;
   fleetPath: string | undefined;
   sessionMode: SessionMode;
-  modelId: string | undefined;
+  modelId: string;
+  modelParams: ModelParam[];
 }
 
 function envInt(name: string, fallback: number): number {
@@ -58,7 +62,22 @@ export function loadConfig(overrides: Partial<AgiConfig> = {}): AgiConfig {
     fleetPath: process.env.AGI_FLEET_PATH?.trim() || undefined,
     sessionMode:
       process.env.AGI_SESSION_MODE?.trim() === "continue" ? "continue" : "fresh",
-    modelId: process.env.AGI_MODEL_ID?.trim() || undefined,
+    modelId: process.env.AGI_MODEL_ID?.trim() || FABLE5_MAX_MODEL_ID,
+    modelParams: parseModelParams(
+      process.env.AGI_MODEL_PARAMS,
+      FABLE5_MAX_PARAMS,
+    ),
     ...overrides,
   };
+}
+
+export function parseModelParams(
+  raw: string | undefined,
+  fallback: ModelParam[],
+): ModelParam[] {
+  if (!raw?.trim()) return fallback.map((p) => ({ ...p }));
+  return raw.split(",").map((part) => {
+    const [id, ...rest] = part.split("=");
+    return { id: (id ?? "").trim(), value: rest.join("=").trim() };
+  }).filter((p) => p.id && p.value);
 }

@@ -27,7 +27,9 @@ npm start
 
 Without `CURSOR_API_KEY` the plane starts in `mock` transport so environment boots and CI stay green.
 
-Optional: `AGI_CONTROL_TOKEN` (Bearer auth), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (127.0.0.1), `AGI_TRANSPORT` (`official` or `mock`), `AGI_SESSION_MODE` (`fresh` default, or `continue`), `AGI_MODEL_ID` (official `GET /v1/models` id such as `grok-4.6`, `claude-fable-5`, `claude-opus-5`).
+The fleet is bound to **Claude Fable 5 Max**: `model.id=claude-fable-5` with `thinking=true`, `context=1m`, `effort=max`. Override with `AGI_MODEL_ID` / `AGI_MODEL_PARAMS`.
+
+Optional: `AGI_CONTROL_TOKEN` (Bearer auth), `AGI_MAX_IN_FLIGHT` (default 100), `AGI_PORT` (8787), `AGI_BIND` (127.0.0.1), `AGI_TRANSPORT` (`official` or `mock`), `AGI_SESSION_MODE` (`fresh` default, or `continue`).
 
 Every new `/v1/ask` (and the other Q&A routes) starts a **new conversation**: the plane creates a new official agent for that turn and archives the previous one on the slot. Official `POST /v1/agents/{id}/runs` cannot reset chat history. Set `AGI_SESSION_MODE=continue` only if you want follow-up on the same agent.
 

@@ -80,6 +80,7 @@ export class Scheduler {
             repoUrl: this.config.repoUrl,
             startingRef: this.config.startingRef,
             modelId: this.config.modelId,
+            modelParams: this.config.modelParams,
           });
           this.registry.bind(slot.name, created.agent.id);
           assignments[index] = {
@@ -152,6 +153,7 @@ export class Scheduler {
               repoUrl: this.config.repoUrl,
               startingRef: this.config.startingRef,
               modelId: this.config.modelId,
+              modelParams: this.config.modelParams,
             });
             agentId = created.agent.id;
             runId = created.run.id;

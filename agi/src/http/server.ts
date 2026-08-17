@@ -46,7 +46,8 @@ async function handle(
         transport: plane.config.transport,
         hasApiKey: Boolean(plane.config.apiKey),
         sessionMode: plane.config.sessionMode,
-        modelId: plane.config.modelId ?? null,
+        modelId: plane.config.modelId,
+        modelParams: plane.config.modelParams,
         fleet: plane.registry.snapshot({
           transport: plane.config.transport,
           maxInFlight: plane.config.maxInFlight,

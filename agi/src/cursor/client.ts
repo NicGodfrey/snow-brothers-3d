@@ -64,7 +64,10 @@ export class OfficialCursorClient implements CursorTransport {
       autoCreatePR: false,
     };
     if (input.modelId) {
-      body.model = { id: input.modelId };
+      body.model = {
+        id: input.modelId,
+        ...(input.modelParams?.length ? { params: input.modelParams } : {}),
+      };
     }
     return this.request<{ agent: CursorAgent; run: CursorRun }>("/v1/agents", {
       method: "POST",

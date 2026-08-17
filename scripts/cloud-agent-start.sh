@@ -18,6 +18,8 @@ fi
 
 (
   cd "$root/agi"
+  export AGI_MODEL_ID="${AGI_MODEL_ID:-claude-fable-5}"
+  export AGI_MODEL_PARAMS="${AGI_MODEL_PARAMS:-thinking=true,context=1m,effort=max}"
   nohup node --import tsx src/cli.ts serve >>"$log" 2>&1 &
   echo $! >"$root/agi/data/runtime/agi.pid"
 )

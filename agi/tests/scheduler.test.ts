@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { loadConfig } from "../src/config.ts";
+import { loadConfig, parseModelParams } from "../src/config.ts";
+import { FABLE5_MAX_MODEL_ID, FABLE5_MAX_PARAMS } from "../src/types.ts";
 import { MockCursorClient } from "../src/cursor/mock.ts";
 import { FleetRegistry } from "../src/registry.ts";
 import { Scheduler } from "../src/scheduler.ts";
@@ -72,6 +73,27 @@ test("provision fills unprovisioned slots on the mock transport", async () => {
   assert.equal(scheduler.registry.get("lucy").status, "idle");
   assert.equal(scheduler.registry.get("lucy").source, "official");
   assert.ok(scheduler.registry.get("lucy").agentId?.startsWith("bc-mock-"));
+});
+
+test("fleet defaults to Claude Fable 5 Max", () => {
+  const config = loadConfig({ transport: "mock" });
+  assert.equal(config.modelId, FABLE5_MAX_MODEL_ID);
+  assert.deepEqual(config.modelParams, FABLE5_MAX_PARAMS);
+  assert.deepEqual(
+    parseModelParams("thinking=true,context=1m,effort=max", []),
+    FABLE5_MAX_PARAMS,
+  );
+});
+
+test("fresh ask sends Fable 5 Max on createAgent", async () => {
+  const scheduler = plane();
+  await scheduler.submit({
+    question: "Ping Fable 5 Max.",
+    target: "lucy02",
+  });
+  const created = (scheduler.transport as MockCursorClient).lastCreate;
+  assert.equal(created?.modelId, FABLE5_MAX_MODEL_ID);
+  assert.deepEqual(created?.modelParams, FABLE5_MAX_PARAMS);
 });
 
 test("fresh session archives the previous agent and starts a new conversation", async () => {

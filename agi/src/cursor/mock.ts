@@ -19,6 +19,7 @@ export class MockCursorClient implements CursorTransport {
   readonly runs = new Map<string, CursorRun>();
   latencyMs = 5;
   failNext = false;
+  lastCreate?: CreateAgentInput;
 
   constructor(seedIds: string[] = []) {
     for (const id of seedIds) {
@@ -89,6 +90,7 @@ export class MockCursorClient implements CursorTransport {
   async createAgent(
     input: CreateAgentInput,
   ): Promise<{ agent: CursorAgent; run: CursorRun }> {
+    this.lastCreate = input;
     await this.delay();
     const id = `bc-mock-${randomUUID()}`;
     const agent: MockAgent = {

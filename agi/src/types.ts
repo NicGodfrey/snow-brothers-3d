@@ -26,6 +26,18 @@ export type ConversationMode = "agent" | "plan";
 export type SessionMode = "fresh" | "continue";
 export type SlotSource = "official" | "legacy" | "unprovisioned";
 
+export interface ModelParam {
+  id: string;
+  value: string;
+}
+
+export const FABLE5_MAX_MODEL_ID = "claude-fable-5";
+export const FABLE5_MAX_PARAMS: ModelParam[] = [
+  { id: "thinking", value: "true" },
+  { id: "context", value: "1m" },
+  { id: "effort", value: "max" },
+];
+
 export interface FleetSlot {
   name: string;
   role: SlotRole;

@@ -1,4 +1,4 @@
-import type { ConversationMode } from "../types.ts";
+import type { ConversationMode, ModelParam } from "../types.ts";
 
 export type CursorRunStatus =
   | "CREATING"
@@ -33,6 +33,7 @@ export interface CreateAgentInput {
   startingRef: string;
   conversationMode?: ConversationMode;
   modelId?: string;
+  modelParams?: ModelParam[];
 }
 
 export interface CursorTransport {
