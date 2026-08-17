@@ -1,0 +1,21 @@
+{
+  "name": "cat-mouse-chase-protocol",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cat & Mouse — Chase Protocol. Canvas 2D stealth-chase game in TypeScript.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/build-tests.mjs && node --test dist-test/tests/",
+    "gen:stages": "node scripts/gen-stages.mjs",
+    "gen:catalogs": "node scripts/gen-catalogs.mjs",
+    "linecount": "node scripts/linecount.mjs"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.0",
+    "vite": "^6.3.0"
+  }
+}
