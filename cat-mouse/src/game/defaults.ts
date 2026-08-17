@@ -34,7 +34,11 @@ export const DEFAULT_MOUSE_STATS: MouseStats = {
 export const DEFAULT_CAT_STATS: CatStats = {
   patrolSpeed: 1.55,
   investigateSpeed: 2.05,
-  chaseSpeed: 2.85,
+  // Deliberately under the mouse walk speed (2.55). A cat that is faster in a
+  // straight line makes every sighting a guaranteed catch; the threat is meant
+  // to come from the pounce burst and from cutoffs. A full load (2.14) still
+  // cannot outrun this, so carrying stays a real risk.
+  chaseSpeed: 2.3,
   pounceSpeed: 6.2,
   turnRate: 7.5,
   sightRange: 7.4,

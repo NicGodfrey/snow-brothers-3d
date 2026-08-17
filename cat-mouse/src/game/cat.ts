@@ -244,6 +244,29 @@ export function freezeCat(cat: CatRuntime, seconds: number): void {
   cat.pathIndex = 0;
 }
 
+/**
+ * Sends a hunter back to its post after it lands a catch.
+ *
+ * Without this the cat keeps its chase state and its position next to the
+ * mouse, so it re-catches the moment respawn invulnerability lapses and burns
+ * every remaining life in a couple of seconds.
+ */
+export function resetCatAfterCatch(cat: CatRuntime, freeze = 1): void {
+  cat.transform.x = cat.homeX;
+  cat.transform.y = cat.homeY;
+  cat.transform.vx = 0;
+  cat.transform.vy = 0;
+  cat.suspicion = 0;
+  cat.target = null;
+  cat.lastKnown = null;
+  cat.memoryTimer = 0;
+  cat.pounceCooldown = 0;
+  cat.patrolIndex = 0;
+  cat.repathTimer = 0;
+  setCatState(cat, 'patrol');
+  freezeCat(cat, freeze);
+}
+
 export function distractCats(cats: CatRuntime[], x: number, y: number, strength = 1): void {
   for (const cat of cats) {
     cat.lastKnown = { x, y };

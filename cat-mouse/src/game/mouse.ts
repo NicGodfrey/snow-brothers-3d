@@ -111,7 +111,9 @@ export function createMouse(
     dashCooldown: 0,
     invulnerable: 0,
     carrying: 0,
-    carryCapacity: 3,
+    // Below the usual stage quota on purpose: the mouse has to ferry cheese to
+    // a hole in more than one trip, which is where the risk lives.
+    carryCapacity: 2,
     crumbs: 2,
     keys: [],
     heldPowerUp: null,

@@ -6,7 +6,7 @@ import type { StageDef } from '../content/schema';
 import type { GameMode, SimulationOptions, StageOutcome, StageResult } from './types';
 import { loadStage, allocateOn, type LoadedStage } from './stageLoad';
 import { catchMouse, mouseStep, overlappingCat, type MouseWorld } from './mouse';
-import { catStep, distractCats, type CatWorld } from './cat';
+import { catStep, distractCats, resetCatAfterCatch, type CatWorld } from './cat';
 import { tickHazards } from './hazards';
 import { tickPowerUps } from './powerups';
 import { tickDecoys } from './senses';
@@ -91,6 +91,7 @@ export class GameSimulation {
           noteDirectorEvent(stage.director, 'catch');
           addHeat(stage.score, 0.2);
           if (stage.mouse.lives <= 0) return this.finish('lost');
+          for (const other of stage.cats) resetCatAfterCatch(other);
         }
       }
     }
