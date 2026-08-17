@@ -13,6 +13,8 @@ It talks only to [Cursor Cloud Agents API v1](https://cursor.com/docs/cloud-agen
 | Parent Task spawn | 10 async children | Cursor Cloud Agent hard limit |
 | Current official slots | 10 | lucy02, lucy03, lucy04, lucy11–lucy16, lucy18 |
 
+Task-spawned lucy copies (`generalPurpose` + `inherit`, new ids only) live in `data/lucy-copies.json`. They do not share lucy's memory. Official `createRun` on them is the same legacy-workflow 400; resume them from the parent Task tool.
+
 100 concurrent live Cloud Agent runs need 100 distinct official agents. The control plane can admit 100 jobs and queue them onto the slots that actually exist.
 
 ## Setup
