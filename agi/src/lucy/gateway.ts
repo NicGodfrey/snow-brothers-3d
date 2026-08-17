@@ -292,15 +292,7 @@ export class LucyGateway {
           }
         } else if (frame.event === "interaction_update") {
           const data = asRecord(frame.data);
-          const text = textOf(data);
-          if (data.type === "text-delta" && text) {
-            sawModel = true;
-            live.job.answer += text;
-            this.emitModel(live, "delta", { text });
-          } else if (data.type === "thinking-delta" && text) {
-            sawModel = true;
-            this.emitModel(live, "thinking", { text });
-          } else if (data.type === "token-delta") {
+          if (data.type === "token-delta") {
             sawModel = true;
             live.watchdog.touch();
           }
