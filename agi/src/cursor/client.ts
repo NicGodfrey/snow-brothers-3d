@@ -121,6 +121,18 @@ export class OfficialCursorClient implements CursorTransport {
       yield { event: "done", data: {} };
       return;
     }
+    if (res.status === 409) {
+      const body = await safeJson(res);
+      const code = String(
+        (body as { error?: { code?: string } })?.error?.code ?? "conflict",
+      );
+      const message = String(
+        (body as { error?: { message?: string } })?.error?.message ??
+          `Cursor API 409 on /v1/agents/${id}/runs/${runId}/stream`,
+      );
+      yield { event: "error", data: { code, message } };
+      return;
+    }
     if (!res.ok || !res.body) {
       const body = await safeText(res);
       throw new TransportError(

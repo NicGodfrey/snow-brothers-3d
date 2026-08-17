@@ -266,9 +266,13 @@ export class LucyGateway {
       await sleep(300, live.abort.signal);
       run = await this.transport.getRun(live.job.agentId, run.id);
     }
+    if (!live.abort.signal.aborted) {
+      await sleep(800, live.abort.signal);
+    }
     for (let attempt = 0; attempt < 6 && live.job.status === "running"; attempt += 1) {
       let retry = false;
       let sawModel = false;
+      try {
       for await (const frame of this.transport.streamRun(live.job.agentId, run.id, {
         signal: live.abort.signal,
       })) {
@@ -316,6 +320,15 @@ export class LucyGateway {
             String(data.message ?? "Official stream error"),
           );
           return;
+        }
+      }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (live.abort.signal.aborted) return;
+        if (/stream_unavailable|http_409/i.test(message)) {
+          retry = true;
+        } else {
+          throw error;
         }
       }
       if (!retry || live.job.status !== "running") break;
