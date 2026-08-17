@@ -1,0 +1,133 @@
+@import url("https://fonts.googleapis.com/css2?family=Bungee&family=IBM+Plex+Sans:wght@400;600&display=swap");
+
+:root {
+  --ink: #e8f4ff;
+  --muted: #9bb8d0;
+  --accent: #5eead4;
+  --warn: #fbbf24;
+  --danger: #fb7185;
+  --panel: rgba(8, 18, 32, 0.72);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #071018;
+  color: var(--ink);
+  font-family: "IBM Plex Sans", sans-serif;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#hud {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  pointer-events: none;
+  padding: 1.1rem 1.4rem 0;
+  display: grid;
+  gap: 0.25rem;
+  background: linear-gradient(180deg, rgba(4, 12, 22, 0.85), transparent 85%);
+}
+
+.hud-brand {
+  font-family: "Bungee", sans-serif;
+  letter-spacing: 0.08em;
+  font-size: clamp(1rem, 2.4vw, 1.45rem);
+  color: var(--accent);
+  text-shadow: 0 0 18px rgba(94, 234, 212, 0.35);
+}
+
+.hud-stage {
+  font-family: "Bungee", sans-serif;
+  font-size: clamp(0.72rem, 1.6vw, 0.95rem);
+  color: var(--warn);
+  letter-spacing: 0.06em;
+}
+
+.hud-status {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.hud-controls {
+  margin-top: 0.55rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  font-size: 0.78rem;
+  color: #7f97ad;
+}
+
+.hud-controls span {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgba(158, 196, 224, 0.2);
+  border-radius: 999px;
+  background: var(--panel);
+}
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  background: radial-gradient(circle at 50% 40%, rgba(18, 48, 68, 0.88), rgba(3, 8, 14, 0.94));
+}
+
+#overlay.hidden {
+  display: none;
+}
+
+#overlay-title {
+  font-family: "Bungee", sans-serif;
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  color: var(--accent);
+}
+
+#overlay-sub {
+  color: var(--muted);
+  margin-bottom: 0.8rem;
+}
+
+#restart-btn {
+  justify-self: center;
+  pointer-events: auto;
+  cursor: pointer;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  font-family: "Bungee", sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  color: #062018;
+  background: linear-gradient(135deg, #5eead4, #67e8f9);
+}
+
+#restart-btn:hover {
+  filter: brightness(1.08);
+}
+
+@media (max-width: 640px) {
+  #hud {
+    padding: 0.85rem 0.9rem 0;
+  }
+
+  .hud-controls {
+    gap: 0.35rem;
+  }
+}
