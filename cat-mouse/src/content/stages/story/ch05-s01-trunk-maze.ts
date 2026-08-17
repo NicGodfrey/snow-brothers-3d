@@ -1,0 +1,117 @@
+import type { StageDef } from '../../schema';
+
+const tiles = [
+  '####################',
+  '#..XXXX....XXXX....#',
+  '#..X..........X....#',
+  '#..X..XXXXXX..X....#',
+  '#..X..X....X..X....#',
+  '#.....X.o..X.......#',
+  '#..X..X....X..X....#',
+  '#..X..XXXXXX..X....#',
+  '#..X..........X....#',
+  '#..XXXX....XXXX..L.#',
+  '#...............v..#',
+  '#..rr..............#',
+  '####################',
+];
+
+const decor = [
+  '                    ',
+  '  ++++    ++++      ',
+  '  +          +      ',
+  '  +  ++++++  +      ',
+  '  +  +    +  +      ',
+  '     +  o +         ',
+  '  +  +    +  +      ',
+  '  +  ++++++  +      ',
+  '  +          +      ',
+  '  ++++    ++++  _   ',
+  '               `    ',
+  '  **                ',
+  '                    ',
+];
+
+const stage: StageDef = {
+  id: 'ch05-s01-trunk-maze',
+  chapter: 5,
+  index: 1,
+  name: 'Trunk Maze',
+  theme: 'attic',
+  kind: 'story',
+  seed: 50501,
+  width: 20,
+  height: 13,
+  tileSize: 16,
+  tiles,
+  decor,
+  spawn: { x: 3, y: 11 },
+  entities: [
+    { type: 'hole', x: 9, y: 5, id: 'trunk-hole' },
+    { type: 'cheese', x: 6, y: 2, value: 1 },
+    { type: 'cheese', x: 13, y: 2, value: 1 },
+    { type: 'cheese', x: 6, y: 8, value: 1 },
+    { type: 'cheese', x: 13, y: 8, value: 1 },
+    { type: 'cheese', x: 17, y: 9, value: 1 },
+    { type: 'cat', x: 17, y: 4, breed: 'scottishFold', patrol: 1, facing: Math.PI },
+    { type: 'powerUp', x: 17, y: 11, kind: 'invisibility' },
+    { type: 'hazard', x: 10, y: 11, kind: 'glueBoard' },
+  ],
+  lights: [
+    { x: 9, y: 5, radius: 2.8, intensity: 0.7, color: '#f0e0b0', on: true },
+    { x: 3, y: 3, radius: 3.0, intensity: 0.35, color: '#e8d5a3', on: true, flicker: 0.1 },
+    { x: 16, y: 9, radius: 3.2, intensity: 0.4, color: '#f0e0b0', on: true },
+  ],
+  patrols: [
+    {
+      id: 1,
+      loop: true,
+      pauseSeconds: 1.2,
+      points: [
+        { x: 17, y: 4 },
+        { x: 17, y: 1 },
+        { x: 17, y: 8 },
+        { x: 10, y: 1 },
+      ],
+    },
+  ],
+  dialogue: [
+    { at: 'enter', speaker: 'Narrator', line: 'Steamer trunks form a maze that remembers every summer nobody took.' },
+    { at: 'enter', speaker: 'Squeak', line: 'Hole in the inner court. Fold on the east ledge, looking like a hat.', delay: 0.5 },
+    { at: 'firstCheese', speaker: 'Squeak', line: 'Moth powder on the rind. I will be vintage later.' },
+    { at: 'firstSpotted', speaker: 'Pounce', line: 'Furniture unfolded. Furniture has a pounce range.' },
+    { at: 'halfQuota', speaker: 'Gran', line: 'Do not live in a trunk. Visit. Steal. Leave. This is becoming a refrain.' },
+    { at: 'win', speaker: 'Radio', line: 'Vent south-east is a mouse-only rumour. You used the court instead. Fine.' },
+    { at: 'lose', speaker: 'Pounce', line: 'Packed. Labelled. Mine.' },
+    { at: 'idle', speaker: 'Narrator', line: 'A moth writes a small eclipse around the bulb.', delay: 9 },
+  ],
+  hints: {
+    ambushSpots: [
+      { x: 10, y: 5 },
+      { x: 17, y: 6 },
+    ],
+    searchSpots: [
+      { x: 6, y: 2 },
+      { x: 13, y: 2 },
+      { x: 17, y: 9 },
+    ],
+    aggression: 0.68,
+    scentBias: 0.5,
+    hearingBias: 0.75,
+    campHoleChance: 0.2,
+    leashRadius: 8,
+  },
+  objectives: [
+    { kind: 'quota', value: 4, optional: false, label: 'Bank 4 cheese' },
+    { kind: 'reachExit', value: 1, optional: false, label: 'Leave through the inner trunk' },
+  ],
+  quota: 4,
+  parTime: 125,
+  lives: 3,
+  ambient: 0.4,
+  difficulty: 4.5,
+  music: 'attic-moths',
+  tags: ['attic', 'maze', 'trunks', 'fold', 'solo-cat'],
+};
+
+export default stage;

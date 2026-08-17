@@ -1,0 +1,125 @@
+import type { StageDef } from '../../schema';
+
+const tiles = [
+  '#####################',
+  '#...................#',
+  '#..rrr...TTT...rrr..#',
+  '#........TTT........#',
+  '#.o.................#',
+  '#......#####........#',
+  '#......#...#....X...#',
+  '#......#...#........#',
+  '#......#####........#',
+  '#................g..#',
+  '#..X.........X......#',
+  '#####################',
+];
+
+const decor = [
+  '                     ',
+  ' .     .      .      ',
+  '  ***   ===   ***    ',
+  '        ===          ',
+  ' o                   ',
+  '      .....          ',
+  '      .   .    +     ',
+  '      .   .          ',
+  '      .....          ',
+  '                `    ',
+  '  +         +        ',
+  '                     ',
+];
+
+const stage: StageDef = {
+  id: 'arcade-04-crowd-surge',
+  chapter: 0,
+  index: 4,
+  name: 'Crowd Surge',
+  theme: 'carnival',
+  kind: 'arcade',
+  seed: 80104,
+  width: 21,
+  height: 12,
+  tileSize: 16,
+  tiles,
+  decor,
+  spawn: { x: 2, y: 10 },
+  entities: [
+    { type: 'hole', x: 2, y: 4, id: 'surge-hole' },
+    { type: 'cheese', x: 9, y: 2, value: 1 },
+    { type: 'cheese', x: 17, y: 2, value: 1 },
+    { type: 'cheese', x: 10, y: 6, value: 1 },
+    { type: 'cheese', x: 16, y: 6, value: 1 },
+    { type: 'cheese', x: 18, y: 9, value: 1 },
+    { type: 'cheese', x: 4, y: 10, value: 1 },
+    { type: 'cat', x: 18, y: 4, breed: 'calico', patrol: 1, facing: Math.PI },
+    { type: 'cat', x: 10, y: 10, breed: 'manx', patrol: 2, facing: 0 },
+    { type: 'powerUp', x: 10, y: 7, kind: 'decoy' },
+    { type: 'hazard', x: 14, y: 8, kind: 'broom' },
+  ],
+  lights: [
+    { x: 9, y: 2, radius: 3.5, intensity: 0.75, color: '#ffd45a', on: true, flicker: 0.28 },
+    { x: 17, y: 2, radius: 3.5, intensity: 0.7, color: '#ffd45a', on: true, flicker: 0.22 },
+    { x: 2, y: 4, radius: 2.2, intensity: 0.75, color: '#d4f0a0', on: true },
+  ],
+  patrols: [
+    {
+      id: 1,
+      loop: true,
+      pauseSeconds: 0.2,
+      points: [
+        { x: 18, y: 4 },
+        { x: 18, y: 1 },
+        { x: 12, y: 4 },
+        { x: 18, y: 9 },
+      ],
+    },
+    {
+      id: 2,
+      loop: true,
+      pauseSeconds: 0.15,
+      points: [
+        { x: 10, y: 10 },
+        { x: 3, y: 10 },
+        { x: 18, y: 10 },
+        { x: 10, y: 8 },
+      ],
+    },
+  ],
+  dialogue: [
+    { at: 'enter', speaker: 'Radio', line: 'Crowd surge. The director is already bored. Calico and Manx split the floor like a bad parade.' },
+    { at: 'firstSpotted', speaker: 'Pounce', line: 'I brought friends. They brought hunger.' },
+    { at: 'halfQuota', speaker: 'Squeak', line: 'Decoy in the booth. Spend it like rent.' },
+    { at: 'win', speaker: 'Narrator', line: 'The parade continues without you, which is the point.' },
+    { at: 'lose', speaker: 'Pounce', line: 'Educational. Again.' },
+    { at: 'idle', speaker: 'Narrator', line: 'A bulb pops like a tiny gunshot nobody filed.', delay: 5 },
+  ],
+  hints: {
+    ambushSpots: [
+      { x: 10, y: 5 },
+      { x: 3, y: 4 },
+    ],
+    searchSpots: [
+      { x: 9, y: 2 },
+      { x: 10, y: 6 },
+      { x: 18, y: 9 },
+    ],
+    aggression: 0.95,
+    scentBias: 0.55,
+    hearingBias: 0.6,
+    campHoleChance: 0.06,
+    leashRadius: 13,
+  },
+  objectives: [
+    { kind: 'quota', value: 5, optional: false, label: 'Bank 5 in the surge' },
+  ],
+  quota: 5,
+  parTime: 68,
+  lives: 3,
+  ambient: 0.48,
+  difficulty: 6,
+  music: 'carnival-closed',
+  tags: ['arcade', 'carnival', 'multi-cat', 'heat'],
+};
+
+export default stage;

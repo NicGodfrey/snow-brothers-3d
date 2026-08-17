@@ -263,3 +263,43 @@ export interface DialogueTree {
   readonly root: string;
   readonly nodes: readonly DialogueNode[];
 }
+
+export const STAGE_KINDS = ['story', 'arcade', 'timeAttack'] as const;
+export type StageKind = (typeof STAGE_KINDS)[number];
+
+export const DIALOGUE_BEAT_ATS = [
+  'enter',
+  'firstCheese',
+  'firstSpotted',
+  'halfQuota',
+  'lowLives',
+  'win',
+  'lose',
+  'idle',
+] as const;
+
+export const OBJECTIVE_KINDS = [
+  'quota',
+  'timeLimit',
+  'noCatch',
+  'allCheese',
+  'reachExit',
+  'pacifist',
+] as const;
+
+export const DIALOGUE_SPEAKERS = ['Squeak', 'Pounce', 'Narrator', 'Gran', 'Radio'] as const;
+
+export function isTileGlyph(ch: string): ch is TileGlyph {
+  return Object.prototype.hasOwnProperty.call(TILE_LEGEND, ch);
+}
+
+export function stageTileAt(
+  stage: Pick<StageDef, 'tiles' | 'width' | 'height'>,
+  x: number,
+  y: number,
+): TileGlyph | undefined {
+  if (y < 0 || y >= stage.height || x < 0 || x >= stage.width) return undefined;
+  const row = stage.tiles[y];
+  if (!row || x >= row.length) return undefined;
+  return row[x] as TileGlyph;
+}

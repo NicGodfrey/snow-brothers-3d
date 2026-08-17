@@ -16,16 +16,16 @@ test('findPath routes around solid tiles', () => {
 });
 
 test('mouse-only vents are closed to cats', () => {
-  const map = TileMap.filled(6, 3, 16, 'floor');
+  const map = TileMap.filled(5, 3, 16, 'wall');
+  map.set(1, 1, 'floor');
   map.set(2, 1, 'vent');
-  map.set(2, 0, 'wall');
-  map.set(2, 2, 'wall');
-  const cat = findPath(map, { start: { x: 1, y: 1 }, goal: { x: 4, y: 1 }, allowMouseOnly: false });
-  const mouse = findPath(map, { start: { x: 1, y: 1 }, goal: { x: 4, y: 1 }, allowMouseOnly: true });
+  map.set(3, 1, 'floor');
+  const cat = findPath(map, { start: { x: 1, y: 1 }, goal: { x: 3, y: 1 }, allowMouseOnly: false });
+  const mouse = findPath(map, { start: { x: 1, y: 1 }, goal: { x: 3, y: 1 }, allowMouseOnly: true });
   assert.equal(cat.found, false);
   assert.equal(mouse.found, true);
   const finder = new Pathfinder(map, { allowMouseOnly: true });
-  assert.equal(finder.find({ x: 1, y: 1 }, { x: 4, y: 1 }).found, true);
+  assert.equal(finder.find({ x: 1, y: 1 }, { x: 3, y: 1 }).found, true);
 });
 
 test('start equals goal and walled-in goals', () => {

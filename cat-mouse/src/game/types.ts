@@ -47,7 +47,8 @@ export type StatusEffectKind =
   | 'magnetized'
   | 'invulnerable'
   | 'exhausted'
-  | 'enraged';
+  | 'enraged'
+  | 'quiet';
 
 export type ItemKind =
   | 'cheese'
@@ -105,6 +106,7 @@ export interface MouseRuntime {
   spawnX: number;
   spawnY: number;
   lastNoise: number;
+  statuses: StatusEffect[];
 }
 
 export interface CatStats {
@@ -127,12 +129,21 @@ export interface CatStats {
   napChance: number;
 }
 
+export interface CatWeights {
+  patrol: number;
+  ambush: number;
+  camp: number;
+  wander: number;
+  nap: number;
+}
+
 export interface CatRuntime {
   entity: Entity;
   transform: Transform;
   state: CatState;
   breed: string;
   stats: CatStats;
+  weights: CatWeights;
   suspicion: number;
   stateTimer: number;
   pounceCooldown: number;
@@ -148,6 +159,7 @@ export interface CatRuntime {
   searchSpots: Vec2[];
   homeX: number;
   homeY: number;
+  statuses: StatusEffect[];
 }
 
 export interface StatusEffect {
@@ -184,6 +196,7 @@ export interface HazardRuntime {
   armed: boolean;
   cooldown: number;
   noise: number;
+  facing: number;
 }
 
 export interface PowerUpRuntime {
@@ -193,6 +206,7 @@ export interface PowerUpRuntime {
   y: number;
   taken: boolean;
   respawn: number;
+  respawnIn: number;
 }
 
 export interface DecoyRuntime {

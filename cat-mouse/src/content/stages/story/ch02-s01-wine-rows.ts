@@ -1,0 +1,117 @@
+import type { StageDef } from '../../schema';
+
+const tiles = [
+  '######################',
+  '#....................#',
+  '#.X.X.X.X.X.X.X.X.X..#',
+  '#....................#',
+  '#.X.X.X.X.X.X.X.X.X..#',
+  '#o...................#',
+  '#.X.X.X.X.X.X.X.X.X..#',
+  '#....................#',
+  '#.X.X.X.X.X.X.X.X.X..#',
+  '#.................s..#',
+  '#.rr.................#',
+  '#.................~~~#',
+  '######################',
+];
+
+const decor = [
+  '                      ',
+  ' .     .      .       ',
+  ' + + + + + + + + +    ',
+  '                      ',
+  ' + + + + + + + + +    ',
+  'o                     ',
+  ' + + + + + + + + +    ',
+  '                      ',
+  ' + + + + + + + + +    ',
+  '                 ~    ',
+  ' **                   ',
+  '                 ~~~  ',
+  '                      ',
+];
+
+const stage: StageDef = {
+  id: 'ch02-s01-wine-rows',
+  chapter: 2,
+  index: 1,
+  name: 'Wine Rows',
+  theme: 'cellar',
+  kind: 'story',
+  seed: 20201,
+  width: 22,
+  height: 13,
+  tileSize: 16,
+  tiles,
+  decor,
+  spawn: { x: 2, y: 10 },
+  entities: [
+    { type: 'hole', x: 1, y: 5, id: 'wine-hole' },
+    { type: 'cheese', x: 3, y: 1, value: 1 },
+    { type: 'cheese', x: 9, y: 3, value: 1 },
+    { type: 'cheese', x: 15, y: 7, value: 1 },
+    { type: 'cheese', x: 19, y: 3, value: 1 },
+    { type: 'cheese', x: 11, y: 10, value: 1 },
+    { type: 'cat', x: 19, y: 7, breed: 'persian', patrol: 1, facing: Math.PI },
+    { type: 'powerUp', x: 2, y: 1, kind: 'scentMask' },
+    { type: 'hazard', x: 18, y: 11, kind: 'sparkWire' },
+  ],
+  lights: [
+    { x: 4, y: 5, radius: 3.5, intensity: 0.4, color: '#e6c27a', on: true, flicker: 0.2 },
+    { x: 16, y: 5, radius: 3.5, intensity: 0.35, color: '#c4a35a', on: true, flicker: 0.15 },
+    { x: 1, y: 5, radius: 2.0, intensity: 0.7, color: '#d4f0a0', on: true },
+  ],
+  patrols: [
+    {
+      id: 1,
+      loop: true,
+      pauseSeconds: 1.4,
+      points: [
+        { x: 19, y: 7 },
+        { x: 19, y: 1 },
+        { x: 19, y: 10 },
+        { x: 12, y: 9 },
+      ],
+    },
+  ],
+  dialogue: [
+    { at: 'enter', speaker: 'Narrator', line: 'Bottles stand like a choir that has taken a vow of dripping.' },
+    { at: 'enter', speaker: 'Gran', line: 'Wine is not cheese. If you cork yourself I will laugh, quietly, in the hole.', delay: 0.5 },
+    { at: 'firstCheese', speaker: 'Squeak', line: 'A rind behind a merlot. The merlot did not consent. I did not ask.' },
+    { at: 'firstSpotted', speaker: 'Pounce', line: 'The Persian has chosen a row and married it.' },
+    { at: 'halfQuota', speaker: 'Radio', line: 'Sump in the south-east. Spark on the water. Do not combine them with dash.' },
+    { at: 'win', speaker: 'Squeak', line: 'The choir did not sing. The hole did.' },
+    { at: 'lose', speaker: 'Pounce', line: 'You pair poorly with teeth.' },
+    { at: 'idle', speaker: 'Narrator', line: 'A cork pops in another century.', delay: 9 },
+  ],
+  hints: {
+    ambushSpots: [
+      { x: 19, y: 5 },
+      { x: 2, y: 5 },
+    ],
+    searchSpots: [
+      { x: 3, y: 1 },
+      { x: 9, y: 3 },
+      { x: 15, y: 7 },
+    ],
+    aggression: 0.4,
+    scentBias: 0.7,
+    hearingBias: 0.35,
+    campHoleChance: 0.28,
+    leashRadius: 8,
+  },
+  objectives: [
+    { kind: 'quota', value: 4, optional: false, label: 'Bank 4 cheese' },
+    { kind: 'noCatch', value: 1, optional: true, label: 'Do not wake the choir' },
+  ],
+  quota: 4,
+  parTime: 110,
+  lives: 3,
+  ambient: 0.28,
+  difficulty: 3,
+  music: 'cellar-drip',
+  tags: ['cellar', 'aisles', 'persian', 'solo-cat'],
+};
+
+export default stage;

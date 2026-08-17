@@ -5,10 +5,13 @@
     "moduleResolution": "Node",
     "isolatedModules": false,
     "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "types": ["node"],
     "noEmit": false,
+    "noCheck": true,
     "outDir": "dist-test",
     "sourceMap": false,
     "declaration": false
   },
-  "include": ["src", "tests"]
+  "include": ["src/engine", "src/game", "src/content", "tests"]
 }
