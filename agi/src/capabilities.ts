@@ -51,5 +51,7 @@ export const CAPABILITIES = {
     basicAuth: "official-style Basic (token:) in addition to Bearer",
     fanout: "POST /v1/fanout|debate|vote|broadcast|specialist",
     remoteAuth: "AGI_CONTROL_TOKEN required off-loopback",
+    claudeCodeMcp:
+      "stdio MCP at scripts/lucy-mcp.mjs so Claude Code can call lucy04 via ask_lucy",
   },
 } as const;

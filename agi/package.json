@@ -15,7 +15,8 @@
     "status": "node --import tsx src/cli.ts status",
     "live:concurrent": "node scripts/live-concurrent.mjs",
     "lucy:chat": "node scripts/lucy-chat.mjs",
-    "lucy:drain": "node scripts/lucy-drain.mjs"
+    "lucy:drain": "node scripts/lucy-drain.mjs",
+    "lucy:mcp": "node scripts/lucy-mcp.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

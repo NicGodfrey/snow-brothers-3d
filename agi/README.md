@@ -62,6 +62,8 @@ Task-spawned copies (lucy and lucy01–lucy20) are visible to `GET /v1/agents/{i
 
 This Cloud Agent VM is not a public internet hostname. Call the plane on localhost inside the VM, or run `agi/` on your own machine with the same official key.
 
+Claude Code 外接 lucy04（MCP，不是 `ANTHROPIC_BASE_URL`）：见 [docs/claude-code-lucy04.md](docs/claude-code-lucy04.md)。
+
 ## Remote lucy streaming
 
 `POST /v1/lucy/ask` (alias `POST /v1/lucy/chat`) picks an idle lucy and opens an SSE conversation. Simple turns aim for a **second-level** reply; longer coding questions still start streaming as soon as the official run exists.
