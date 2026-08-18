@@ -1,0 +1,53 @@
+{
+  "template": {
+    "name": "lucy",
+    "agentId": "bc-9a1ae0da-1b80-5fe3-985e-94bc5ea1f3eb",
+    "subagentType": "generalPurpose",
+    "model": "inherit",
+    "source": "internal",
+    "pool": "public"
+  },
+  "note": "Task-spawned copies. Same spawn properties as lucy, new ids only. No conversation memory. Official createRun is legacy-workflow 400; resume via the parent Task tool.",
+  "copies": [
+    {
+      "name": "lucy-copy-01",
+      "agentId": "bc-8b4ffc3f-344f-585b-a121-4c7a8c1bee4d"
+    },
+    {
+      "name": "lucy-copy-02",
+      "agentId": "bc-a79e5f78-88ee-577a-a953-19eba6cac555"
+    },
+    {
+      "name": "lucy-copy-03",
+      "agentId": "bc-c257d661-3ee9-5105-8c18-1134855d4c25"
+    },
+    {
+      "name": "lucy-copy-04",
+      "agentId": "bc-9c418236-aa68-5ce2-a855-459ee81b2fbf"
+    },
+    {
+      "name": "lucy-copy-05",
+      "agentId": "bc-fb4db07b-8e5f-5417-80f3-87a6d71e5229"
+    },
+    {
+      "name": "lucy-copy-06",
+      "agentId": "bc-10fe2862-b294-5226-9e22-157515ccdbcc"
+    },
+    {
+      "name": "lucy-copy-07",
+      "agentId": "bc-8712f23a-49bd-55c5-a7c7-a24f4dab4260"
+    },
+    {
+      "name": "lucy-copy-08",
+      "agentId": "bc-f09c0091-b45d-5f6e-8fb4-7f8e18e9f3cc"
+    },
+    {
+      "name": "lucy-copy-09",
+      "agentId": "bc-97498e85-a083-533a-b585-1f6363027b0c"
+    },
+    {
+      "name": "lucy-copy-10",
+      "agentId": "bc-15f1b8c3-3cdb-5294-9c14-d9e6359c71f5"
+    }
+  ]
+}

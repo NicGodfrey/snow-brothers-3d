@@ -1,0 +1,26 @@
+{
+  "name": "agi-control-plane",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Official Cursor Cloud Agents orchestrator for the 101-slot Lucy fleet.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "test": "tsc --noEmit -p tsconfig.json && node --import tsx --test --test-concurrency=1 tests/*.test.ts",
+    "start": "node --import tsx src/cli.ts serve",
+    "ask": "node --import tsx src/cli.ts ask",
+    "status": "node --import tsx src/cli.ts status",
+    "live:concurrent": "node scripts/live-concurrent.mjs",
+    "lucy:chat": "node scripts/lucy-chat.mjs",
+    "lucy:drain": "node scripts/lucy-drain.mjs",
+    "lucy:mcp": "node scripts/lucy-mcp.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.20.5",
+    "typescript": "~5.9.0"
+  }
+}

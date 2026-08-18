@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "lucy04": {
+      "command": "node",
+      "args": ["/ABS/PATH/snow-brothers-3d/agi/scripts/lucy-mcp.mjs"],
+      "env": {
+        "AGI_URL": "http://127.0.0.1:8787",
+        "AGI_CONTROL_TOKEN": "PASTE_SAME_TOKEN_AS_AGI_START",
+        "LUCY_TARGET": "lucy04",
+        "LUCY_CONVERSATION_ID": "claude-code-lucy04"
+      }
+    }
+  }
+}

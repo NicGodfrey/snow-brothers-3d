@@ -1,0 +1,118 @@
+import type { StageDef } from '../../schema';
+
+const tiles = [
+  '####################',
+  '#....XXXX..........#',
+  '#....X..X..TTT.....#',
+  '#....X..X..TTT.....#',
+  '#.o..X.............#',
+  '#....XXXX....X.....#',
+  '#................X.#',
+  '#..rr....####......#',
+  '#..rr....#..#......#',
+  '#........#..#..g...#',
+  '#........####......#',
+  '#...............X..#',
+  '#..................#',
+  '####################',
+];
+
+const decor = [
+  '                    ',
+  '    ++++   .        ',
+  '    +  +   ===      ',
+  '    +  +   ===      ',
+  ' o  +         .     ',
+  '    ++++    +       ',
+  '                 +  ',
+  '  **    ....        ',
+  '  **    .  .        ',
+  '        .  .  `     ',
+  '        ....        ',
+  '               +    ',
+  '  ,        ,        ',
+  '                    ',
+];
+
+const stage: StageDef = {
+  id: 'ch01-s02-breadbox-heist',
+  chapter: 1,
+  index: 2,
+  name: 'Breadbox Heist',
+  theme: 'kitchen',
+  kind: 'story',
+  seed: 10102,
+  width: 20,
+  height: 14,
+  tileSize: 16,
+  tiles,
+  decor,
+  spawn: { x: 2, y: 2 },
+  entities: [
+    { type: 'hole', x: 2, y: 4, id: 'breadbox-hole' },
+    { type: 'cheese', x: 6, y: 2, value: 1, note: 'inside the breadbox' },
+    { type: 'cheese', x: 13, y: 2, value: 1 },
+    { type: 'cheese', x: 10, y: 8, value: 1 },
+    { type: 'cheese', x: 17, y: 11, value: 1 },
+    { type: 'cat', x: 16, y: 6, breed: 'calico', patrol: 1, facing: Math.PI },
+    { type: 'powerUp', x: 3, y: 7, kind: 'decoy' },
+    { type: 'hazard', x: 14, y: 9, kind: 'snapTrap' },
+  ],
+  lights: [
+    { x: 6, y: 3, radius: 3.2, intensity: 0.5, color: '#ffe8a0', on: true },
+    { x: 14, y: 3, radius: 4.0, intensity: 0.65, color: '#fff1c8', on: true },
+    { x: 2, y: 4, radius: 2.2, intensity: 0.75, color: '#d4f0a0', on: true },
+  ],
+  patrols: [
+    {
+      id: 1,
+      loop: true,
+      pauseSeconds: 0.8,
+      points: [
+        { x: 16, y: 6 },
+        { x: 17, y: 11 },
+        { x: 12, y: 12 },
+        { x: 16, y: 3 },
+      ],
+    },
+  ],
+  dialogue: [
+    { at: 'enter', speaker: 'Squeak', line: 'Breadbox is a crate with opinions. Cheese hides in the opinion.' },
+    { at: 'enter', speaker: 'Gran', line: 'Do not live in the box. Visit. Steal. Leave.', delay: 0.6 },
+    { at: 'firstCheese', speaker: 'Squeak', line: 'Crust crumbs in my whiskers. Worth it.' },
+    { at: 'firstSpotted', speaker: 'Pounce', line: 'Calico on duty. Three cats, one fur coat, all hungry.' },
+    { at: 'halfQuota', speaker: 'Radio', line: 'The grate on the right is a rumour of a vent. Use it if the cone finds you.' },
+    { at: 'win', speaker: 'Narrator', line: 'The breadbox closes on nothing. The hole is heavier.' },
+    { at: 'lose', speaker: 'Gran', line: 'You nested in the box. Boxes are not holes.' },
+    { at: 'idle', speaker: 'Narrator', line: 'A snap trap in the south-east practices being patient.', delay: 8 },
+  ],
+  hints: {
+    ambushSpots: [
+      { x: 9, y: 8 },
+      { x: 16, y: 5 },
+    ],
+    searchSpots: [
+      { x: 6, y: 2 },
+      { x: 13, y: 2 },
+      { x: 10, y: 8 },
+    ],
+    aggression: 0.5,
+    scentBias: 0.48,
+    hearingBias: 0.52,
+    campHoleChance: 0.1,
+    leashRadius: 8,
+  },
+  objectives: [
+    { kind: 'quota', value: 3, optional: false, label: 'Bank 3 cheese' },
+    { kind: 'noCatch', value: 1, optional: true, label: 'No calico souvenirs' },
+  ],
+  quota: 3,
+  parTime: 80,
+  lives: 3,
+  ambient: 0.6,
+  difficulty: 1.2,
+  music: 'kitchen-night',
+  tags: ['kitchen', 'crates', 'solo-cat', 'light-quota'],
+};
+
+export default stage;

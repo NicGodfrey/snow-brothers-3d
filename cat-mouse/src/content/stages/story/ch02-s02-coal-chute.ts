@@ -1,0 +1,116 @@
+import type { StageDef } from '../../schema';
+
+const tiles = [
+  '##################',
+  '#s...............#',
+  '##s..............#',
+  '###s........XXX..#',
+  '####s.......X....#',
+  '#####s......X..o.#',
+  '######s..........#',
+  '#......s.........#',
+  '#.rr....s........#',
+  '#........s...p...#',
+  '#.........s......#',
+  '#..........~~~~~~#',
+  '##################',
+];
+
+const decor = [
+  '                  ',
+  ' ~                ',
+  '  ~               ',
+  '   ~        +++   ',
+  '    ~       +     ',
+  '     ~      +  o  ',
+  '      ~           ',
+  '       ~          ',
+  ' **     ~         ',
+  '         ~   |    ',
+  '          ~       ',
+  '           ~~~~~~ ',
+  '                  ',
+];
+
+const stage: StageDef = {
+  id: 'ch02-s02-coal-chute',
+  chapter: 2,
+  index: 2,
+  name: 'Coal Chute',
+  theme: 'cellar',
+  kind: 'story',
+  seed: 20202,
+  width: 18,
+  height: 13,
+  tileSize: 16,
+  tiles,
+  decor,
+  spawn: { x: 1, y: 1 },
+  entities: [
+    { type: 'hole', x: 15, y: 5, id: 'chute-hole' },
+    { type: 'cheese', x: 14, y: 3, value: 1 },
+    { type: 'cheese', x: 10, y: 7, value: 1 },
+    { type: 'cheese', x: 3, y: 8, value: 1 },
+    { type: 'cheese', x: 12, y: 10, value: 1 },
+    { type: 'cat', x: 16, y: 9, breed: 'ragdoll', patrol: 1, facing: -Math.PI / 2 },
+    { type: 'hazard', x: 14, y: 11, kind: 'water' },
+    { type: 'powerUp', x: 2, y: 8, kind: 'featherFoot' },
+  ],
+  lights: [
+    { x: 2, y: 2, radius: 3.0, intensity: 0.3, color: '#e6c27a', on: true },
+    { x: 15, y: 5, radius: 2.6, intensity: 0.75, color: '#d4f0a0', on: true },
+    { x: 12, y: 11, radius: 2.8, intensity: 0.25, color: '#4a6a4e', on: true, flicker: 0.25 },
+  ],
+  patrols: [
+    {
+      id: 1,
+      loop: true,
+      pauseSeconds: 1.7,
+      points: [
+        { x: 16, y: 9 },
+        { x: 16, y: 3 },
+        { x: 10, y: 10 },
+        { x: 16, y: 7 },
+      ],
+    },
+  ],
+  dialogue: [
+    { at: 'enter', speaker: 'Squeak', line: 'A staircase made of leftover wall. Gravity is the only honest cat here.' },
+    { at: 'enter', speaker: 'Radio', line: 'Hole is tucked behind the coal crates. Ragdoll napping on the sump lip.', delay: 0.5 },
+    { at: 'firstCheese', speaker: 'Squeak', line: 'Black dust, yellow rind. I am becoming a rumour of a miner.' },
+    { at: 'firstSpotted', speaker: 'Pounce', line: 'The rag stood up. The rag remembered teeth.' },
+    { at: 'halfQuota', speaker: 'Gran', line: 'Stairs are a funnel. Funnels have mouths at the bottom.' },
+    { at: 'win', speaker: 'Narrator', line: 'The chute keeps sliding. You do not.' },
+    { at: 'lose', speaker: 'Pounce', line: 'Coal-flavoured. Seasonal.' },
+    { at: 'idle', speaker: 'Narrator', line: 'A lump of coal ticks as it cools, which is rude.', delay: 8 },
+  ],
+  hints: {
+    ambushSpots: [
+      { x: 14, y: 5 },
+      { x: 8, y: 8 },
+    ],
+    searchSpots: [
+      { x: 14, y: 3 },
+      { x: 3, y: 8 },
+      { x: 12, y: 10 },
+    ],
+    aggression: 0.45,
+    scentBias: 0.8,
+    hearingBias: 0.4,
+    campHoleChance: 0.18,
+    leashRadius: 7,
+  },
+  objectives: [
+    { kind: 'quota', value: 4, optional: false, label: 'Bank 4 cheese' },
+    { kind: 'reachExit', value: 1, optional: false, label: 'Reach the crate hole' },
+  ],
+  quota: 4,
+  parTime: 95,
+  lives: 3,
+  ambient: 0.26,
+  difficulty: 3.2,
+  music: 'cellar-drip',
+  tags: ['cellar', 'stairs', 'chute', 'solo-cat'],
+};
+
+export default stage;

@@ -1,0 +1,27 @@
+{
+  "name": "snow-brothers-3d",
+  "install": "./scripts/cloud-agent-install.sh",
+  "start": "./scripts/cloud-agent-start.sh",
+  "ports": [
+    {
+      "name": "agi-control-plane",
+      "port": 8787
+    },
+    {
+      "name": "cat-mouse-dev",
+      "port": 5173
+    }
+  ],
+  "terminals": [
+    {
+      "name": "agi-logs",
+      "command": "tail -n +1 -f /tmp/agi-control-plane.log",
+      "description": "Logs for the AGI control plane and remote lucy SSE gateway on port 8787."
+    },
+    {
+      "name": "cat-mouse-dev",
+      "command": "cd /workspace/cat-mouse && npm run dev -- --host 127.0.0.1 --port 5173",
+      "description": "Cat & Mouse Vite development server."
+    }
+  ]
+}

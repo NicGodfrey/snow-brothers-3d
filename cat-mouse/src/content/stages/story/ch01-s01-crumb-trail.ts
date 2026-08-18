@@ -1,0 +1,167 @@
+import type { StageDef } from '../../schema';
+
+const tiles = [
+  '####################',
+  '#..................#',
+  '#..rrr.............#',
+  '#..rrr...TTTT......#',
+  '#........TTTT......#',
+  '#.o................#',
+  '#......######......#',
+  '#......#....#......#',
+  '#......#....#..X...#',
+  '#..................#',
+  '#....X........g....#',
+  '#...............X..#',
+  '#..................#',
+  '####################',
+];
+
+const decor = [
+  '                    ',
+  '  ,    .     ,      ',
+  '  ***               ',
+  '  ***     ====      ',
+  '          ====      ',
+  ' o....              ',
+  '      ......        ',
+  '      .    .        ',
+  '      .    .  +     ',
+  '   .           .    ',
+  '    +        `      ',
+  '               +    ',
+  '  ,        ,        ',
+  '                    ',
+];
+
+const stage: StageDef = {
+  id: 'ch01-s01-crumb-trail',
+  chapter: 1,
+  index: 1,
+  name: 'Crumb Trail',
+  theme: 'kitchen',
+  kind: 'story',
+  seed: 10101,
+  width: 20,
+  height: 14,
+  tileSize: 16,
+  tiles,
+  decor,
+  spawn: { x: 2, y: 2 },
+  entities: [
+    { type: 'hole', x: 2, y: 5, id: 'crumb-hole' },
+    { type: 'crumb', x: 4, y: 5, value: 1, note: 'first nibble of the trail' },
+    { type: 'crumb', x: 6, y: 5, value: 1 },
+    { type: 'crumb', x: 8, y: 5, value: 1 },
+    { type: 'crumb', x: 10, y: 5, value: 1 },
+    { type: 'cheese', x: 13, y: 3, value: 1 },
+    { type: 'cheese', x: 16, y: 8, value: 1 },
+    { type: 'cheese', x: 4, y: 10, value: 1 },
+    { type: 'cheese', x: 17, y: 11, value: 1 },
+    { type: 'cat', x: 16, y: 4, breed: 'tabby', patrol: 1, facing: Math.PI },
+    { type: 'decorProp', x: 9, y: 8, note: 'breadbox shadow' },
+  ],
+  lights: [
+    { x: 4, y: 3, radius: 4.5, intensity: 0.7, color: '#fff1c8', on: true },
+    { x: 15, y: 4, radius: 3.8, intensity: 0.55, color: '#ffe8a0', on: true, flicker: 0.08 },
+    { x: 2, y: 5, radius: 2.4, intensity: 0.8, color: '#d4f0a0', on: true },
+    { x: 16, y: 11, radius: 3.2, intensity: 0.4, color: '#e8d8b0', on: true },
+  ],
+  patrols: [
+    {
+      id: 1,
+      loop: true,
+      pauseSeconds: 1.1,
+      points: [
+        { x: 16, y: 4 },
+        { x: 17, y: 8 },
+        { x: 14, y: 11 },
+        { x: 16, y: 6 },
+      ],
+    },
+  ],
+  dialogue: [
+    {
+      at: 'enter',
+      speaker: 'Narrator',
+      line: 'A trail of crumbs writes a dare across the linoleum. The fridge compressor clears its throat.',
+    },
+    {
+      at: 'enter',
+      speaker: 'Squeak',
+      line: 'Three wedges. Hole by the rug. Tabby works the table like a lighthouse with teeth.',
+      delay: 0.5,
+    },
+    {
+      at: 'enter',
+      speaker: 'Gran',
+      line: 'Follow the crumbs, not the pride. Deposit in the hole. Do not audition for the cat.',
+      delay: 1.1,
+    },
+    {
+      at: 'firstCheese',
+      speaker: 'Squeak',
+      line: 'Heavy. Loud. Mine until the hole says otherwise.',
+    },
+    {
+      at: 'firstSpotted',
+      speaker: 'Pounce',
+      line: 'Oh good. The snack learned verbs.',
+    },
+    {
+      at: 'halfQuota',
+      speaker: 'Radio',
+      line: 'Half a pantry is still a pantry. The hole is a bank, not a sofa.',
+    },
+    {
+      at: 'lowLives',
+      speaker: 'Gran',
+      line: 'You dashed in the cone. That is postage, not bravery.',
+    },
+    {
+      at: 'win',
+      speaker: 'Squeak',
+      line: 'Quota. Whiskers attached. The trail did its job.',
+    },
+    {
+      at: 'lose',
+      speaker: 'Pounce',
+      line: 'You taste like adrenaline and poor decisions. Come back, I am still hungry.',
+    },
+    {
+      at: 'idle',
+      speaker: 'Narrator',
+      line: 'The breadbox considers being a cave. The tabby considers being furniture. Neither is trustworthy.',
+      delay: 9,
+    },
+  ],
+  hints: {
+    ambushSpots: [
+      { x: 3, y: 5 },
+      { x: 11, y: 6 },
+    ],
+    searchSpots: [
+      { x: 12, y: 3 },
+      { x: 16, y: 8 },
+      { x: 5, y: 10 },
+    ],
+    aggression: 0.42,
+    scentBias: 0.55,
+    hearingBias: 0.4,
+    campHoleChance: 0.06,
+    leashRadius: 7,
+  },
+  objectives: [
+    { kind: 'quota', value: 3, optional: false, label: 'Bank 3 cheese' },
+    { kind: 'noCatch', value: 1, optional: true, label: 'Ghost the tabby' },
+  ],
+  quota: 3,
+  parTime: 75,
+  lives: 3,
+  ambient: 0.62,
+  difficulty: 1,
+  music: 'kitchen-night',
+  tags: ['kitchen', 'tutorial', 'crumb-trail', 'solo-cat', 'light-quota'],
+};
+
+export default stage;

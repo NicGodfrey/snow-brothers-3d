@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "lucy04": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["scripts/lucy-mcp.mjs"],
+      "env": {
+        "AGI_URL": "http://127.0.0.1:8787",
+        "AGI_CONTROL_TOKEN": "${AGI_CONTROL_TOKEN}",
+        "LUCY_TARGET": "lucy04",
+        "LUCY_CONVERSATION_ID": "claude-code-lucy04"
+      }
+    }
+  }
+}

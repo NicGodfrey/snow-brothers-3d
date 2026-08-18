@@ -1,0 +1,118 @@
+import type { StageDef } from '../../schema';
+
+const tiles = [
+  '#####################',
+  '#...................#',
+  '#.rr....#######.....#',
+  '#.rr....#.....#..X..#',
+  '#.......#..o..#.....#',
+  '#.......#.....#.....#',
+  '#..TTT..#######..g..#',
+  '#..TTT..............#',
+  '#..............~~~~.#',
+  '#....X..............#',
+  '#.........v.........#',
+  '#...................#',
+  '#####################',
+];
+
+const decor = [
+  '                     ',
+  '  .     .      .     ',
+  ' **    .......       ',
+  ' **    .     .  +    ',
+  '       .  o  .       ',
+  '       .     .       ',
+  '  ===  .......  `    ',
+  '  ===                ',
+  '              ~~~~   ',
+  '    +                ',
+  '         `           ',
+  '  ,           ,      ',
+  '                     ',
+];
+
+const stage: StageDef = {
+  id: 'ch01-s03-midnight-fridge',
+  chapter: 1,
+  index: 3,
+  name: 'Midnight Fridge',
+  theme: 'kitchen',
+  kind: 'story',
+  seed: 10103,
+  width: 21,
+  height: 13,
+  tileSize: 16,
+  tiles,
+  decor,
+  spawn: { x: 2, y: 2 },
+  entities: [
+    { type: 'hole', x: 11, y: 4, id: 'fridge-hole', note: 'vent behind the fridge' },
+    { type: 'cheese', x: 10, y: 3, value: 1, guarded: true },
+    { type: 'cheese', x: 12, y: 5, value: 1 },
+    { type: 'cheese', x: 3, y: 7, value: 1 },
+    { type: 'cheese', x: 17, y: 10, value: 1 },
+    { type: 'cat', x: 18, y: 3, breed: 'ragdoll', patrol: 1, facing: Math.PI },
+    { type: 'switch', x: 2, y: 10, id: 'fridge-light', targets: ['fridge-lamp'] },
+    { type: 'powerUp', x: 15, y: 6, kind: 'invisibility' },
+    { type: 'hazard', x: 16, y: 8, kind: 'water' },
+  ],
+  lights: [
+    { x: 11, y: 4, radius: 2.8, intensity: 0.85, color: '#c8e8ff', on: false, switchId: 'fridge-lamp' },
+    { x: 4, y: 2, radius: 3.5, intensity: 0.35, color: '#887860', on: true },
+    { x: 18, y: 9, radius: 3.0, intensity: 0.3, color: '#6aa8c8', on: true, flicker: 0.2 },
+  ],
+  patrols: [
+    {
+      id: 1,
+      loop: true,
+      pauseSeconds: 1.6,
+      points: [
+        { x: 18, y: 3 },
+        { x: 18, y: 10 },
+        { x: 14, y: 11 },
+        { x: 18, y: 6 },
+      ],
+    },
+  ],
+  dialogue: [
+    { at: 'enter', speaker: 'Narrator', line: 'The fridge light is a tiny moon that only turns on for thieves and leftovers.' },
+    { at: 'enter', speaker: 'Squeak', line: 'Hole is inside the cold box. Cheese too. Ragdoll is pretending to be a loaf.', delay: 0.4 },
+    { at: 'enter', speaker: 'Radio', line: 'The switch by the south wall feeds the fridge lamp. Darkness is sneak. Light is a map.', delay: 1 },
+    { at: 'firstCheese', speaker: 'Squeak', line: 'Cold cheddar. My teeth file a complaint and then a thank-you.' },
+    { at: 'firstSpotted', speaker: 'Pounce', line: 'The loaf stood up. The loaf has opinions.' },
+    { at: 'halfQuota', speaker: 'Gran', line: 'Do not nap in the fridge. We have discussed this.' },
+    { at: 'win', speaker: 'Squeak', line: 'The tiny moon goes out. The hole is richer.' },
+    { at: 'lose', speaker: 'Pounce', line: 'Leftovers should stay leftovers.' },
+    { at: 'idle', speaker: 'Narrator', line: 'A drip in the sink writes Morse for "leave".', delay: 10 },
+  ],
+  hints: {
+    ambushSpots: [
+      { x: 8, y: 4 },
+      { x: 14, y: 4 },
+    ],
+    searchSpots: [
+      { x: 10, y: 3 },
+      { x: 3, y: 7 },
+      { x: 17, y: 10 },
+    ],
+    aggression: 0.38,
+    scentBias: 0.35,
+    hearingBias: 0.6,
+    campHoleChance: 0.22,
+    leashRadius: 6,
+  },
+  objectives: [
+    { kind: 'quota', value: 3, optional: false, label: 'Bank 3 cheese' },
+    { kind: 'reachExit', value: 1, optional: false, label: 'Leave through the fridge vent' },
+  ],
+  quota: 3,
+  parTime: 90,
+  lives: 3,
+  ambient: 0.34,
+  difficulty: 1.5,
+  music: 'kitchen-night',
+  tags: ['kitchen', 'fridge', 'dark', 'switch', 'solo-cat'],
+};
+
+export default stage;

@@ -1,0 +1,13 @@
+---
+description: Official lucy04 via local AGI plane (Cursor MCP or curl). Never Anthropic Messages.
+globs: agi/**
+---
+
+When the user wants lucy04, official lucy chat, or to land the local Cursor tutorial:
+
+- Follow `agi/docs/cursor-local-lucy04.md` and use prompts from `agi/docs/prompts-lucy04.md`.
+- Path: Cursor → MCP `ask_lucy` or `POST /v1/lucy/ask` → `http://127.0.0.1:8787` → official Cloud Agents → lucy04 `bc-83b91fab-c4f7-46bd-b4b7-e4a531ce3621`.
+- Default `target=lucy04`, `conversationId=cursor-lucy04`, `pool=official`.
+- Do not implement `/v1/messages`. Do not set `ANTHROPIC_BASE_URL`. Do not send `CURSOR_API_KEY` to third parties or commit it.
+- Do not call official `createRun` on `lucy-copy-*`.
+- If MCP `ask_lucy` exists, call it instead of inventing lucy04's answer. If not, curl the control plane. If the plane is down, start `agi` with `agi/.env.lucy04` rather than switching to mock and calling it official.
