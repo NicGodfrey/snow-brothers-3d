@@ -62,7 +62,7 @@ Task-spawned copies (lucy and lucy01–lucy20) are visible to `GET /v1/agents/{i
 
 This Cloud Agent VM is not a public internet hostname. Call the plane on localhost inside the VM, or run `agi/` on your own machine with the same official key.
 
-Claude Code 外接 lucy04（MCP，不是 `ANTHROPIC_BASE_URL`）：见 [docs/claude-code-lucy04.md](docs/claude-code-lucy04.md)。
+本机 Cursor 外接 lucy04：先看 [docs/cursor-local-lucy04.md](docs/cursor-local-lucy04.md) 和 [docs/prompts-lucy04.md](docs/prompts-lucy04.md)。Claude Code CLI：[docs/claude-code-lucy04.md](docs/claude-code-lucy04.md)。索引：[docs/README.md](docs/README.md)。
 
 ## Remote lucy streaming
 

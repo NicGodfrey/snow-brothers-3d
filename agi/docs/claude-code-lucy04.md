@@ -1,5 +1,7 @@
 # 用 Claude Code 外接 lucy04
 
+本机 **Cursor Desktop** 落地请先看 [cursor-local-lucy04.md](cursor-local-lucy04.md) 和 [prompts-lucy04.md](prompts-lucy04.md)。下面是 Claude Code CLI 的接法。
+
 这条路径是：
 
 ```text
