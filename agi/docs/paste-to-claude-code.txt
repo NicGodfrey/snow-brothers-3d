@@ -1,0 +1,40 @@
+我不会命令行，也不会配 MCP。下面整件事由你在我这台电脑上代做，不要让我自己敲命令。我只负责：需要时粘贴 CURSOR_API_KEY。
+
+目标（不要改架构）：
+Claude Code → MCP ask_lucy → 本机 http://127.0.0.1:8787 → 官方 Cursor Cloud Agents API → lucy04（bc-83b91fab-c4f7-46bd-b4b7-e4a531ce3621）
+
+说明书（你读，我不用读）：
+- agi/docs/claude-code-lucy04.md
+- agi/docs/cursor-local-lucy04.md 里的约束同样适用
+
+硬性禁止：
+- 不要实现或暴露 Anthropic /v1/messages
+- 不要设置 ANTHROPIC_BASE_URL
+- 不要把 CURSOR_API_KEY 写进 git / PR / 聊天记录复述全文
+- 不要对 lucy-copy-* 走官方 createRun
+- 不要叫我去 Settings 里手改一堆文件；配置你来写、命令你来跑
+
+请按顺序实际执行：
+
+1. 找到或克隆仓库 github.com/NicGodfrey/snow-brothers-3d。当前目录已经是这个仓库就用当前目录。
+2. 检查 node -v 是 22+。在 agi/ 执行 npm ci。
+3. 若没有 agi/.env.lucy04：从 agi/.env.lucy04.example 复制。
+   - AGI_CONTROL_TOKEN：你用 openssl rand -hex 24 生成并写入 .env.lucy04
+   - CURSOR_API_KEY：没有就向我要一次，我粘贴给你，你写入 .env.lucy04
+   - 其余按 example：AGI_TRANSPORT=official，AGI_LUCY_POOL=official，AGI_SESSION_MODE=continue，AGI_BIND=127.0.0.1，AGI_PORT=8787，LUCY_TARGET=lucy04，LUCY_CONVERSATION_ID=claude-code-lucy04
+4. 用该 env 在后台启动 `npm start`（工作目录 agi/）。不要用 mock 冒充官方。
+5. 你来 curl 验收（带 Bearer token）：
+   - GET /v1/fleet/lucy04 → agentId 必须是 bc-83b91fab-c4f7-46bd-b4b7-e4a531ce3621
+   - POST /v1/lucy/ask，JSON：question=Reply with exactly: LUCY04 OK，stream=false，pool=official，target=lucy04，conversationId=claude-code-lucy04
+   - 成功标准：lucyName=lucy04 且 status=succeeded
+6. 你来执行（路径换成绝对路径）：
+   claude mcp add --scope user --transport stdio lucy04 \
+     --env AGI_URL=http://127.0.0.1:8787 \
+     --env AGI_CONTROL_TOKEN=<与 .env.lucy04 相同> \
+     --env LUCY_TARGET=lucy04 \
+     --env LUCY_CONVERSATION_ID=claude-code-lucy04 \
+     -- node <仓库绝对路径>/agi/scripts/lucy-mcp.mjs
+   然后 claude mcp list / claude mcp get lucy04 确认已登记。
+7. 告诉我：控制面已在跑；请我新开一个 `claude` 窗口（旧窗口没有新 MCP）。新窗口里只需对我说：「用 lucy04 回答：只回 LUCY04 OK」
+
+完成后用短列表汇报：仓库路径、8787 是否在听、验收的 lucyName/status/runId、mcp list 是否有 lucy04。不要打印完整 API key。出错就你自己修，不要把步骤甩回给我。

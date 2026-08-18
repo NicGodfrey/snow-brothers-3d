@@ -1,12 +1,13 @@
 # Lucy / AGI 文档索引
 
-按你要做的事选一篇即可。
+**不会操作：** 打开 Claude Code，把 [paste-to-claude-code.txt](paste-to-claude-code.txt) **全文粘贴**，只在它向你要时提供 `CURSOR_API_KEY`。
 
 | 文档 | 给谁用 |
 | --- | --- |
-| [cursor-local-lucy04.md](cursor-local-lucy04.md) | **本机 Cursor 落地**（先看这篇） |
-| [prompts-lucy04.md](prompts-lucy04.md) | 复制给本机 Cursor Agent 的提示词 |
-| [claude-code-lucy04.md](claude-code-lucy04.md) | 本机 Claude Code CLI 外接 lucy04 |
+| [paste-to-claude-code.txt](paste-to-claude-code.txt) | **只贴这一份**，Claude Code 全权代做 |
+| [prompts-lucy04.md](prompts-lucy04.md) | 配好之后的日常/验收提示词 |
+| [claude-code-lucy04.md](claude-code-lucy04.md) | 给会自己跑命令的人看的说明书 |
+| [cursor-local-lucy04.md](cursor-local-lucy04.md) | 若改用 Cursor Desktop MCP 再看 |
 
 相关文件：
 
