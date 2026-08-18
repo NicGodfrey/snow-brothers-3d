@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { dirname } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { startServer } from "../src/http/server.ts";
@@ -16,7 +15,7 @@ async function withMcp(
   fn: (send: (msg: object) => Promise<unknown>) => Promise<void>,
 ): Promise<void> {
   const child = spawn(process.execPath, ["scripts/lucy-mcp.mjs"], {
-    cwd: dirname(fileURLToPath(new URL("..", import.meta.url))),
+    cwd: fileURLToPath(new URL("..", import.meta.url)),
     env: { ...process.env, ...env },
     stdio: ["pipe", "pipe", "pipe"],
   });
